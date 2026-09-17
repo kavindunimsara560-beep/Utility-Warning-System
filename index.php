@@ -8,16 +8,26 @@ $search_date = isset($_GET['date']) ? $_GET['date'] : '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Balangoda Utility Warnings</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, sans-serif; }
-        .card:hover { transform: translateY(-5px); transition: 0.3s ease-in-out; box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            transition: 0.3s ease-in-out;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+        }
     </style>
 </head>
+
 <body>
     <nav class="navbar navbar-dark bg-dark mb-4 shadow-sm">
         <div class="container">
@@ -40,22 +50,27 @@ $search_date = isset($_GET['date']) ? $_GET['date'] : '';
                     <label class="form-label fw-bold small">Utility Type</label>
                     <select name="type" class="form-select">
                         <option value="">All Types</option>
-                        <option value="Power" <?php if($search_type == 'Power') echo 'selected'; ?>>Power</option>
-                        <option value="Water" <?php if($search_type == 'Water') echo 'selected'; ?>>Water</option>
-                        <option value="Road" <?php if($search_type == 'Road') echo 'selected'; ?>>Road</option>
+                        <option value="Power" <?php if ($search_type == 'Power')
+                            echo 'selected'; ?>>Power</option>
+                        <option value="Water" <?php if ($search_type == 'Water')
+                            echo 'selected'; ?>>Water</option>
+                        <option value="Road" <?php if ($search_type == 'Road')
+                            echo 'selected'; ?>>Road</option>
                     </select>
                 </div>
 
                 <!-- Keyword Search -->
                 <div class="col-md-4">
                     <label class="form-label fw-bold small">Keyword Search</label>
-                    <input type="text" name="keyword" class="form-control" placeholder="e.g. Maintenance, Pipeline" value="<?php echo htmlspecialchars($search_keyword); ?>">
+                    <input type="text" name="keyword" class="form-control" placeholder="e.g. Maintenance, Pipeline"
+                        value="<?php echo htmlspecialchars($search_keyword); ?>">
                 </div>
 
                 <!-- Date Filter -->
                 <div class="col-md-3">
                     <label class="form-label fw-bold small">Filter by Date</label>
-                    <input type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($search_date); ?>">
+                    <input type="date" name="date" class="form-control"
+                        value="<?php echo htmlspecialchars($search_date); ?>">
                 </div>
 
                 <!-- Buttons -->
@@ -91,7 +106,7 @@ $search_date = isset($_GET['date']) ? $_GET['date'] : '';
             $result = $conn->query($sql);
 
             if ($result && $result->num_rows > 0) {
-                while($row = $result->fetch_assoc()) {
+                while ($row = $result->fetch_assoc()) {
                     $type = $row['utility_type'];
                     $customColor = htmlspecialchars($row['color_code']);
 
@@ -124,4 +139,5 @@ $search_date = isset($_GET['date']) ? $_GET['date'] : '';
         </div>
     </div>
 </body>
+
 </html>
