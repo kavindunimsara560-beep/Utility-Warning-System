@@ -6,6 +6,7 @@ USE `balangoda_utility_warnings`;
 CREATE TABLE IF NOT EXISTS `admins` (
   `admin_id` int(11) NOT NULL AUTO_INCREMENT,
   `username` varchar(50) NOT NULL UNIQUE,
+  `email` varchar(100) DEFAULT NULL UNIQUE,
   `password_hash` varchar(255) NOT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`admin_id`)

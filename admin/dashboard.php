@@ -93,7 +93,7 @@ if (isset($_GET['delete_complaint'])) {
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
     $complaint_id = intval($_POST['complaint_id']);
     $new_status = trim($_POST['status'] ?? 'Pending Review');
-    
+
     $update_stmt = $conn->prepare("UPDATE complaints SET status = ? WHERE complaint_id = ?");
     if ($update_stmt) {
         $update_stmt->bind_param("si", $new_status, $complaint_id);
@@ -106,6 +106,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -113,6 +114,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../css/style.css">
 </head>
+
 <body class="bg-light">
     <!-- Navbar -->
     <nav class="navbar navbar-dark bg-dark shadow-sm mb-4">
@@ -122,7 +124,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
                 <a href="../index.php" target="_blank" class="btn btn-outline-info btn-sm">View Public Site ↗</a>
             </div>
             <div class="d-flex align-items-center gap-3">
-                <span class="text-white-50 small">Logged in as: <strong class="text-white"><?php echo htmlspecialchars($_SESSION['admin_username'] ?? 'Admin'); ?></strong></span>
+                <span class="text-white-50 small">Logged in as: <strong
+                        class="text-white"><?php echo htmlspecialchars($_SESSION['admin_username'] ?? 'Admin'); ?></strong></span>
                 <a href="logout.php" class="btn btn-outline-danger btn-sm">Logout</a>
             </div>
         </div>
@@ -130,9 +133,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
 
     <!-- Notification Banner -->
     <div class="container-fluid px-4">
-        <?php if(!empty($message)): ?>
+        <?php if (!empty($message)): ?>
             <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show shadow-sm" role="alert">
-                <strong><?php echo $message_type === 'success' ? 'Success:' : 'Alert:'; ?></strong> <?php echo htmlspecialchars($message); ?>
+                <strong><?php echo $message_type === 'success' ? 'Success:' : 'Alert:'; ?></strong>
+                <?php echo htmlspecialchars($message); ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         <?php endif; ?>
@@ -144,7 +148,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
             <div class="col-lg-5">
                 <div class="card shadow-sm border-0 p-4">
                     <h4 class="mb-3 fw-bold">📢 Post New Outage Warning</h4>
-                    <p class="text-muted small">Publish an emergency or scheduled outage notice for Balangoda residents.</p>
+                    <p class="text-muted small">Publish an emergency or scheduled outage notice for Balangoda residents.
+                    </p>
                     <form method="POST" action="dashboard.php">
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Utility Type</label>
@@ -156,17 +161,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Warning Title</label>
-                            <input type="text" name="title" class="form-control" placeholder="e.g. Scheduled Main Grid Power Cut" required>
+                            <input type="text" name="title" class="form-control"
+                                placeholder="e.g. Scheduled Main Grid Power Cut" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Detailed Description & Affected Locations</label>
-                            <textarea name="description" class="form-control" rows="3" placeholder="Areas affected, reason, safety instructions..." required></textarea>
+                            <textarea name="description" class="form-control" rows="3"
+                                placeholder="Areas affected, reason, safety instructions..." required></textarea>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Alert Color Code</label>
                             <div class="d-flex align-items-center gap-2">
-                                <input type="color" name="color_code" class="form-control form-control-color" value="#dc3545" required>
-                                <span class="text-muted small">Default: Red (#dc3545 for urgent), Yellow (#ffc107 for advisory)</span>
+                                <input type="color" name="color_code" class="form-control form-control-color"
+                                    value="#dc3545" required>
+                                <span class="text-muted small">Default: Red (#dc3545 for urgent), Yellow (#ffc107 for
+                                    advisory)</span>
                             </div>
                         </div>
                         <div class="row">
@@ -179,7 +188,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
                                 <input type="datetime-local" name="end_time" class="form-control" required>
                             </div>
                         </div>
-                        <button type="submit" name="add_warning" class="btn btn-primary w-100 py-2 fw-semibold">Publish Outage Warning</button>
+                        <button type="submit" name="add_warning" class="btn btn-primary w-100 py-2 fw-semibold">Publish
+                            Outage Warning</button>
                     </form>
                 </div>
             </div>
@@ -202,11 +212,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
                                 <?php
                                 $result = $conn->query("SELECT * FROM warnings ORDER BY start_time DESC");
                                 if ($result && $result->num_rows > 0) {
-                                    while($row = $result->fetch_assoc()) {
+                                    while ($row = $result->fetch_assoc()) {
                                         $badgeClass = 'bg-secondary';
-                                        if ($row['utility_type'] === 'Power') $badgeClass = 'bg-danger';
-                                        elseif ($row['utility_type'] === 'Water') $badgeClass = 'bg-primary';
-                                        elseif ($row['utility_type'] === 'Road') $badgeClass = 'bg-warning text-dark';
+                                        if ($row['utility_type'] === 'Power')
+                                            $badgeClass = 'bg-danger';
+                                        elseif ($row['utility_type'] === 'Water')
+                                            $badgeClass = 'bg-primary';
+                                        elseif ($row['utility_type'] === 'Road')
+                                            $badgeClass = 'bg-warning text-dark';
 
                                         $is_active = (strtotime($row['end_time']) > time() && strtotime($row['start_time']) <= time());
                                         $statusBadge = $is_active ? "<span class='badge bg-success ms-1'>Active</span>" : "";
@@ -244,7 +257,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
             <div class="col-12">
                 <div class="card shadow-sm border-0 p-4">
                     <h4 class="mb-2 fw-bold">📋 Resident Complaints Management</h4>
-                    <p class="text-muted small mb-4">Review incoming issues from residents, update repair status, or remove completed tickets.</p>
+                    <p class="text-muted small mb-4">Review incoming issues from residents, update repair status, or
+                        remove completed tickets.</p>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle">
                             <thead class="table-dark">
@@ -260,13 +274,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
                                 <?php
                                 $comp_result = $conn->query("SELECT * FROM complaints ORDER BY complaint_id DESC");
                                 if ($comp_result && $comp_result->num_rows > 0) {
-                                    while($comp = $comp_result->fetch_assoc()) {
+                                    while ($comp = $comp_result->fetch_assoc()) {
                                         $current_status = isset($comp['status']) ? $comp['status'] : 'Pending Review';
-                                        
+
                                         $uBadge = 'bg-secondary';
-                                        if ($comp['utility_type'] === 'Power') $uBadge = 'bg-danger';
-                                        elseif ($comp['utility_type'] === 'Water') $uBadge = 'bg-primary';
-                                        elseif ($comp['utility_type'] === 'Road') $uBadge = 'bg-warning text-dark';
+                                        if ($comp['utility_type'] === 'Power')
+                                            $uBadge = 'bg-danger';
+                                        elseif ($comp['utility_type'] === 'Water')
+                                            $uBadge = 'bg-primary';
+                                        elseif ($comp['utility_type'] === 'Road')
+                                            $uBadge = 'bg-warning text-dark';
 
                                         echo "<tr>
                                             <td><span class='fw-bold text-secondary'>#" . $comp['complaint_id'] . "</span></td>
@@ -309,4 +326,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
