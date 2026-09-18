@@ -149,7 +149,7 @@ if ($an_res) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Balangoda Warnings</title>
-    <link rel="manifest" href="/Web_base_project/manifest.json">
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0d6efd">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -293,6 +293,14 @@ if ($an_res) {
                         </div>
                     </div>
                 </div>
+                <!-- Enable browser notifications -->
+                <button id="enable-notif-btn" class="btn btn-outline-warning btn-sm" title="Enable push notifications" onclick="requestNotifPermission()" style="display:none;">
+                    <i class="bi bi-bell-slash"></i>
+                </button>
+                <!-- PWA install -->
+                <button class="btn btn-outline-info btn-sm d-none pwa-install-btn" title="Install as App">
+                    <i class="bi bi-download"></i> Install
+                </button>
                 <span class="text-white-50 small">Logged in as: <strong
                         class="text-white"><?php echo htmlspecialchars($_SESSION['admin_username'] ?? 'Admin'); ?></strong></span>
                 <a href="logout.php" class="btn btn-outline-danger btn-sm">Logout</a>
@@ -494,14 +502,16 @@ if ($an_res) {
 
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- PWA: SW registration, install prompt, notifications, beforeunload guard -->
+    <script src="/js/pwa.js"></script>
     <script>
-        // ── PWA: Service Worker registration ──────────────────────────
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/Web_base_project/sw.js').catch(() => { });
+        // ── Show "Enable Notifications" button if permission not yet granted ──
+        if ('Notification' in window && Notification.permission === 'default') {
+            document.getElementById('enable-notif-btn').style.display = '';
         }
 
         // ── Notification badge auto-poll (every 30s) ──────────────────
-        const NOTIF_API = '../api/admin_notif_count.php';
+        const NOTIF_API = '/api/admin_notif_count.php';
 
         async function fetchNotifCount() {
             try {
@@ -539,7 +549,6 @@ if ($an_res) {
                 const fd = new FormData();
                 fd.append('action', 'mark_all_read');
                 await fetch(NOTIF_API, { method: 'POST', body: fd, credentials: 'same-origin' });
-                // Visually clear badge and unread highlights
                 updateBadge(0);
                 document.querySelectorAll('.notif-item.unread').forEach(el => el.classList.remove('unread'));
             } catch (e) { }

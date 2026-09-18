@@ -1,13 +1,14 @@
-// Balangoda Utility Warning System — Service Worker v1.2
-const CACHE_NAME = 'balangoda-uws-v1';
-const OFFLINE_URL = '/Web_base_project/offline.html';
+// Balangoda Utility Warning System — Service Worker v2.0
+// Paths are root-relative (served from localhost:8000/)
+const CACHE_NAME = 'balangoda-uws-v2';
+const OFFLINE_URL = '/offline.html';
 
 // Static assets to pre-cache on install
 const PRECACHE_ASSETS = [
-    '/Web_base_project/offline.html',
-    '/Web_base_project/css/style.css',
-    '/Web_base_project/icons/icon-192.png',
-    '/Web_base_project/icons/icon-512.png',
+    '/offline.html',
+    '/css/style.css',
+    '/icons/icon-192.png',
+    '/icons/icon-512.png',
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js',
     'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
@@ -15,6 +16,7 @@ const PRECACHE_ASSETS = [
 
 // ── Install: pre-cache static shell ──────────────────────────────────────────
 self.addEventListener('install', event => {
+    console.log('[SW] Installing v2...');
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
             return cache.addAll(PRECACHE_ASSETS).catch(err => {
@@ -26,12 +28,16 @@ self.addEventListener('install', event => {
 
 // ── Activate: purge old caches ────────────────────────────────────────────────
 self.addEventListener('activate', event => {
+    console.log('[SW] Activating v2...');
     event.waitUntil(
         caches.keys().then(keys =>
             Promise.all(
                 keys
                     .filter(key => key !== CACHE_NAME)
-                    .map(key => caches.delete(key))
+                    .map(key => {
+                        console.log('[SW] Deleting old cache:', key);
+                        return caches.delete(key);
+                    })
             )
         ).then(() => self.clients.claim())
     );
@@ -42,8 +48,9 @@ self.addEventListener('fetch', event => {
     const { request } = event;
     const url = new URL(request.url);
 
-    // Skip non-GET and cross-origin API calls (DB requests)
+    // Only handle GET requests on same origin
     if (request.method !== 'GET') return;
+    if (url.origin !== location.origin && !url.hostname.includes('cdn.jsdelivr.net') && !url.hostname.includes('fonts.g')) return;
 
     // Static assets (CSS, JS, fonts, images) → Cache-first
     const isStaticAsset = (
@@ -69,8 +76,8 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // PHP pages → Network-first (always try fresh, fallback to cache or offline)
-    if (url.pathname.match(/\.php$/i) || url.pathname.endsWith('/')) {
+    // PHP pages → Network-first (always fresh data; fallback to cache or offline)
+    if (url.pathname.match(/\.php$/i) || url.pathname === '/' || url.pathname.endsWith('/')) {
         event.respondWith(
             fetch(request)
                 .then(response => {
@@ -87,4 +94,37 @@ self.addEventListener('fetch', event => {
         );
         return;
     }
+});
+
+// ── Push Notifications ────────────────────────────────────────────────────────
+// Handles push events sent from a Push server (for future Web Push integration)
+self.addEventListener('push', event => {
+    let data = { title: 'Balangoda Utility Alert', body: 'A new utility update is available.', icon: '/icons/icon-192.png' };
+    if (event.data) {
+        try { data = { ...data, ...event.data.json() }; } catch (e) { data.body = event.data.text(); }
+    }
+    event.waitUntil(
+        self.registration.showNotification(data.title, {
+            body:  data.body,
+            icon:  data.icon || '/icons/icon-192.png',
+            badge: '/icons/icon-192.png',
+            tag:   data.tag || 'balangoda-utility',
+            data:  data.url ? { url: data.url } : {},
+            vibrate: [200, 100, 200],
+        })
+    );
+});
+
+// ── Notification click: open / focus the app ─────────────────────────────────
+self.addEventListener('notificationclick', event => {
+    event.notification.close();
+    const target = (event.notification.data && event.notification.data.url) || '/index.php';
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+            for (const client of clientList) {
+                if (client.url.includes(target) && 'focus' in client) return client.focus();
+            }
+            if (clients.openWindow) return clients.openWindow(target);
+        })
+    );
 });
