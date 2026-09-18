@@ -1,68 +1,71 @@
 <?php
-require 'config/db_connect.php';
+require_once 'config/db_connect.php';
 
 // Capture filter inputs
-$search_type = isset($_GET['type']) ? $_GET['type'] : '';
+$search_type = isset($_GET['type']) ? trim($_GET['type']) : '';
 $search_keyword = isset($_GET['keyword']) ? trim($_GET['keyword']) : '';
-$search_date = isset($_GET['date']) ? $_GET['date'] : '';
+$search_date = isset($_GET['date']) ? trim($_GET['date']) : '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Balangoda Utility Warnings</title>
+    <title>Balangoda Utility Outage Warnings</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
     <style>
-        body {
-            background-color: #f8f9fa;
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            transition: 0.3s ease-in-out;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+        .card:hover { 
+            transform: translateY(-4px); 
+            transition: 0.25s ease-in-out; 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; 
         }
     </style>
 </head>
-
-<body>
-    <nav class="navbar navbar-dark bg-dark mb-4 shadow-sm">
+<body class="bg-light">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
         <div class="container">
-            <span class="navbar-brand mb-0 h1">Balangoda Utility Outage Warnings</span>
+            <a class="navbar-brand fw-bold" href="index.php">⚡ Balangoda Utility Outage Warnings</a>
+            <div class="d-flex align-items-center gap-2">
+                <a href="submit_complaint.php" class="btn btn-danger btn-sm fw-bold">🚨 Report Issue</a>
+                <a href="report.php" class="btn btn-outline-light btn-sm">Track Complaints</a>
+                <a href="admin/login.php" class="btn btn-outline-secondary btn-sm text-white-50">Admin</a>
+            </div>
         </div>
     </nav>
 
     <div class="container">
-        <!-- Page Header & Report Button -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="mb-0">Active Outages & Warnings</h4>
-            <a href="report.php" class="btn btn-danger btn-sm shadow-sm">🚨 Report Utility Issue</a>
+        <!-- Page Header & Action Buttons -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div>
+                <h3 class="fw-bold mb-1">Active & Scheduled Outage Warnings</h3>
+                <p class="text-muted mb-0 small">Official municipal utility alerts for electricity, water, and roadways in Balangoda.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="submit_complaint.php" class="btn btn-danger shadow-sm fw-bold">🚨 Report Utility Issue</a>
+                <a href="report.php" class="btn btn-outline-primary shadow-sm fw-bold">Track Complaints</a>
+            </div>
         </div>
 
         <!-- Advanced Filter & Search Bar -->
         <div class="card shadow-sm border-0 p-3 mb-4">
-            <form method="GET" action="" class="row g-3">
+            <form method="GET" action="index.php" class="row g-3">
                 <!-- Utility Type Filter -->
                 <div class="col-md-3">
                     <label class="form-label fw-bold small">Utility Type</label>
                     <select name="type" class="form-select">
                         <option value="">All Types</option>
-                        <option value="Power" <?php if ($search_type == 'Power')
-                            echo 'selected'; ?>>Power</option>
-                        <option value="Water" <?php if ($search_type == 'Water')
-                            echo 'selected'; ?>>Water</option>
-                        <option value="Road" <?php if ($search_type == 'Road')
-                            echo 'selected'; ?>>Road</option>
+                        <option value="Power" <?php if ($search_type === 'Power') echo 'selected'; ?>>Power</option>
+                        <option value="Water" <?php if ($search_type === 'Water') echo 'selected'; ?>>Water</option>
+                        <option value="Road" <?php if ($search_type === 'Road') echo 'selected'; ?>>Road</option>
                     </select>
                 </div>
 
                 <!-- Keyword Search -->
                 <div class="col-md-4">
                     <label class="form-label fw-bold small">Keyword Search</label>
-                    <input type="text" name="keyword" class="form-control" placeholder="e.g. Maintenance, Pipeline"
+                    <input type="text" name="keyword" class="form-control" placeholder="e.g. Maintenance, Main St..."
                         value="<?php echo htmlspecialchars($search_keyword); ?>">
                 </div>
 
@@ -84,7 +87,7 @@ $search_date = isset($_GET['date']) ? $_GET['date'] : '';
         <!-- Warning Cards Grid -->
         <div class="row g-4 mb-5">
             <?php
-            // Base SQL query keeping the automatic active check (hiding expired warnings)
+            // Base SQL query keeping active & upcoming warnings
             $sql = "SELECT * FROM warnings WHERE end_time > NOW()";
 
             // Dynamically append filters based on user input
@@ -107,37 +110,57 @@ $search_date = isset($_GET['date']) ? $_GET['date'] : '';
 
             if ($result && $result->num_rows > 0) {
                 while ($row = $result->fetch_assoc()) {
-                    $type = $row['utility_type'];
+                    $type = htmlspecialchars($row['utility_type']);
                     $customColor = htmlspecialchars($row['color_code']);
+                    
+                    // Check if outage is currently ongoing vs scheduled ahead
+                    $now = time();
+                    $start_ts = strtotime($row['start_time']);
+                    $end_ts = strtotime($row['end_time']);
+                    $is_ongoing = ($start_ts <= $now && $end_ts > $now);
+                    
+                    // Check if warning was published recently (last 24 hours)
+                    $is_new = (!empty($row['created_at']) && strtotime($row['created_at']) > ($now - 86400));
 
-                    // Check if the warning was created within the last 24 hours (86400 seconds)
-                    $is_new = (strtotime($row['created_at']) > (time() - 86400));
-                    $notificationBadge = $is_new ? "<span class='badge bg-danger ms-2'>NEW ALERT</span>" : "";
+                    $statusBadge = "";
+                    if ($is_ongoing) {
+                        $statusBadge .= "<span class='badge bg-warning text-dark me-1'>⚡ ONGOING</span>";
+                    } else {
+                        $statusBadge .= "<span class='badge bg-light text-dark me-1'>SCHEDULED</span>";
+                    }
+                    if ($is_new) {
+                        $statusBadge .= "<span class='badge bg-danger'>NEW ALERT</span>";
+                    }
+
+                    $start_formatted = date('M d, Y - h:i A', $start_ts);
+                    $end_formatted = date('M d, Y - h:i A', $end_ts);
 
                     echo "
                     <div class='col-md-6 col-lg-4'>
                         <div class='card h-100 shadow-sm' style='border: 2px solid $customColor;'>
                             <div class='card-header fw-bold text-white d-flex justify-content-between align-items-center' style='background-color: $customColor;'>
                                 <span>$type Outage</span>
-                                $notificationBadge
+                                <div>$statusBadge</div>
                             </div>
                             <div class='card-body'>
-                                <h5 class='card-title'>" . htmlspecialchars($row['title']) . "</h5>
+                                <h5 class='card-title fw-bold'>" . htmlspecialchars($row['title']) . "</h5>
                                 <p class='card-text text-muted'>" . htmlspecialchars($row['description']) . "</p>
                             </div>
-                            <div class='card-footer bg-transparent' style='border-top: 1px solid $customColor;'>
-                                <small class='d-block'><strong>Start:</strong> " . $row['start_time'] . "</small>
-                                <small class='d-block'><strong>End:</strong> " . $row['end_time'] . "</small>
+                            <div class='card-footer bg-transparent' style='border-top: 1px solid rgba(0,0,0,0.08);'>
+                                <small class='d-block text-muted'><strong>Start:</strong> $start_formatted</small>
+                                <small class='d-block text-muted'><strong>End:</strong> $end_formatted</small>
                             </div>
                         </div>
                     </div>";
                 }
             } else {
-                echo "<div class='col-12'><div class='alert alert-warning shadow-sm'>No utility outages match your search criteria.</div></div>";
+                echo "<div class='col-12'><div class='alert alert-warning shadow-sm'>No active or scheduled utility outages match your search criteria.</div></div>";
             }
             ?>
         </div>
     </div>
-</body>
 
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>
