@@ -25,6 +25,9 @@ if (isset($_GET['msg'])) {
     } elseif ($_GET['msg'] === 'warning_updated') {
         $message = "Warning notice updated successfully.";
         $message_type = "success";
+    } elseif ($_GET['msg'] === 'account_created') {
+        $message = "Welcome! Your admin account was successfully created and you are now signed in.";
+        $message_type = "success";
     }
 }
 
@@ -100,8 +103,43 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
         $update_stmt->execute();
         $update_stmt->close();
     }
+
+    // Insert a client notification for the status change, keyed to contact_info
+    $ref_res = $conn->prepare("SELECT resident_name, contact_info, title FROM complaints WHERE complaint_id = ?");
+    if ($ref_res) {
+        $ref_res->bind_param("i", $complaint_id);
+        $ref_res->execute();
+        $comp_row = $ref_res->get_result()->fetch_assoc();
+        $ref_res->close();
+        if ($comp_row) {
+            $notif_msg = "Your complaint #" . $complaint_id . " (\"" . mb_strimwidth($comp_row['title'], 0, 60, '...') . "\") status has been updated to: " . $new_status . ".";
+            $notif_link = null;
+            $client_ref = $comp_row['contact_info']; // client identified by contact_info
+            $cn_stmt = $conn->prepare("INSERT INTO notifications (target_type, target_ref, message, link) VALUES ('client', ?, ?, ?)");
+            if ($cn_stmt) {
+                $cn_stmt->bind_param("sss", $client_ref, $notif_msg, $notif_link);
+                $cn_stmt->execute();
+                $cn_stmt->close();
+            }
+        }
+    }
+
     header("Location: dashboard.php?msg=status_updated");
     exit();
+}
+
+// ── Fetch admin notification data for badge ───────────────────────────────
+$admin_notif_count = 0;
+$admin_notifs = [];
+$anc_res = $conn->query("SELECT COUNT(*) AS cnt FROM notifications WHERE target_type='admin' AND is_read=0");
+if ($anc_res) {
+    $admin_notif_count = (int) ($anc_res->fetch_assoc()['cnt'] ?? 0);
+}
+$an_res = $conn->query("SELECT notification_id, message, created_at, is_read FROM notifications WHERE target_type='admin' ORDER BY created_at DESC LIMIT 15");
+if ($an_res) {
+    while ($an = $an_res->fetch_assoc()) {
+        $admin_notifs[] = $an;
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -111,8 +149,97 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Balangoda Warnings</title>
+    <link rel="manifest" href="/Web_base_project/manifest.json">
+    <meta name="theme-color" content="#0d6efd">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="../css/style.css">
+    <style>
+        /* Notification bell styles */
+        .notif-bell-btn {
+            position: relative;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 8px;
+            color: #fff;
+            padding: 0.35rem 0.65rem;
+            transition: background 0.18s;
+            cursor: pointer;
+        }
+
+        .notif-bell-btn:hover {
+            background: rgba(255, 255, 255, 0.16);
+        }
+
+        .notif-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 700;
+            border-radius: 50%;
+            min-width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 3px;
+            border: 2px solid #1a1a2e;
+            animation: badge-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes badge-pop {
+            from {
+                transform: scale(0.4);
+            }
+
+            to {
+                transform: scale(1);
+            }
+        }
+
+        .notif-dropdown {
+            min-width: 340px;
+            max-height: 420px;
+            overflow-y: auto;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.12);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+            padding: 0;
+        }
+
+        .notif-item {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+            transition: background 0.15s;
+        }
+
+        .notif-item:last-child {
+            border-bottom: none;
+        }
+
+        .notif-item.unread {
+            background: rgba(13, 110, 253, 0.06);
+        }
+
+        .notif-item:hover {
+            background: rgba(13, 110, 253, 0.1);
+        }
+
+        .notif-msg {
+            font-size: 0.84rem;
+            color: #1e293b;
+            line-height: 1.4;
+        }
+
+        .notif-time {
+            font-size: 0.72rem;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+    </style>
 </head>
 
 <body class="bg-light">
@@ -124,6 +251,48 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
                 <a href="../index.php" target="_blank" class="btn btn-outline-info btn-sm">View Public Site ↗</a>
             </div>
             <div class="d-flex align-items-center gap-3">
+                <!-- Notification Bell -->
+                <div class="dropdown" id="notif-dropdown-container">
+                    <button class="notif-bell-btn" id="notifBellBtn" data-bs-toggle="dropdown" aria-expanded="false"
+                        title="Notifications">
+                        <i class="bi bi-bell-fill fs-5"></i>
+                        <?php if ($admin_notif_count > 0): ?>
+                            <span class="notif-badge" id="notif-badge"><?php echo $admin_notif_count; ?></span>
+                        <?php endif; ?>
+                    </button>
+                    <div class="dropdown-menu notif-dropdown" aria-labelledby="notifBellBtn">
+                        <!-- Dropdown header -->
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                            <span class="fw-bold small">Notifications</span>
+                            <button id="mark-all-read-btn"
+                                class="btn btn-link btn-sm p-0 text-primary text-decoration-none small">Mark all
+                                read</button>
+                        </div>
+                        <div id="notif-list">
+                            <?php if (empty($admin_notifs)): ?>
+                                <div class="text-center text-muted py-4 small"><i
+                                        class="bi bi-bell-slash fs-4 d-block mb-2"></i>No notifications yet.</div>
+                            <?php else: ?>
+                                <?php foreach ($admin_notifs as $an): ?>
+                                    <div class="notif-item <?php echo $an['is_read'] ? '' : 'unread'; ?>">
+                                        <div class="notif-msg"><?php echo htmlspecialchars($an['message']); ?></div>
+                                        <div class="notif-time"><?php
+                                        $diff = time() - strtotime($an['created_at']);
+                                        if ($diff < 60)
+                                            echo 'just now';
+                                        elseif ($diff < 3600)
+                                            echo (int) ($diff / 60) . 'm ago';
+                                        elseif ($diff < 86400)
+                                            echo (int) ($diff / 3600) . 'h ago';
+                                        else
+                                            echo date('M d, Y', strtotime($an['created_at']));
+                                        ?></div>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
                 <span class="text-white-50 small">Logged in as: <strong
                         class="text-white"><?php echo htmlspecialchars($_SESSION['admin_username'] ?? 'Admin'); ?></strong></span>
                 <a href="logout.php" class="btn btn-outline-danger btn-sm">Logout</a>
@@ -325,6 +494,57 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
 
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ── PWA: Service Worker registration ──────────────────────────
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/Web_base_project/sw.js').catch(() => { });
+        }
+
+        // ── Notification badge auto-poll (every 30s) ──────────────────
+        const NOTIF_API = '../api/admin_notif_count.php';
+
+        async function fetchNotifCount() {
+            try {
+                const res = await fetch(NOTIF_API, { credentials: 'same-origin' });
+                if (!res.ok) return;
+                const data = await res.json();
+                updateBadge(data.count);
+            } catch (e) { }
+        }
+
+        function updateBadge(count) {
+            const container = document.querySelector('#notif-dropdown-container .notif-bell-btn');
+            if (!container) return;
+            let badge = document.getElementById('notif-badge');
+            if (count > 0) {
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.id = 'notif-badge';
+                    badge.className = 'notif-badge';
+                    container.appendChild(badge);
+                }
+                badge.textContent = count;
+            } else {
+                if (badge) badge.remove();
+            }
+        }
+
+        // Poll every 30 seconds
+        setInterval(fetchNotifCount, 30000);
+
+        // ── Mark all read ─────────────────────────────────────────────
+        document.getElementById('mark-all-read-btn')?.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            try {
+                const fd = new FormData();
+                fd.append('action', 'mark_all_read');
+                await fetch(NOTIF_API, { method: 'POST', body: fd, credentials: 'same-origin' });
+                // Visually clear badge and unread highlights
+                updateBadge(0);
+                document.querySelectorAll('.notif-item.unread').forEach(el => el.classList.remove('unread'));
+            } catch (e) { }
+        });
+    </script>
 </body>
 
 </html>

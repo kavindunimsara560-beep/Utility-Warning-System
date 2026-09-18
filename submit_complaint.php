@@ -25,6 +25,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_complaint'])) {
             if ($stmt->execute()) {
                 $complaint_ref = $stmt->insert_id;
                 $success_msg = "Your complaint (Ref #" . $complaint_ref . ") has been successfully submitted! You can track its status in the portal using your contact info.";
+                // Insert admin notification for the new complaint
+                $notif_msg = "New complaint #" . $complaint_ref . " from " . $name . " — " . $utility_type . ": " . mb_strimwidth($title, 0, 80, '...');
+                $notif_link = "admin/dashboard.php";
+                $nstmt = $conn->prepare("INSERT INTO notifications (target_type, target_ref, message, link) VALUES ('admin', NULL, ?, ?)");
+                if ($nstmt) { $nstmt->bind_param("ss", $notif_msg, $notif_link); $nstmt->execute(); $nstmt->close(); }
             } else {
                 $error_msg = "Database Error: " . $stmt->error;
             }
@@ -43,8 +48,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_complaint'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Submit Complaint - Balangoda Utility Portal</title>
+    <link rel="manifest" href="/Web_base_project/manifest.json">
+    <meta name="theme-color" content="#0d6efd">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="bg-light">
@@ -53,7 +61,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_complaint'])) {
     <nav class="navbar navbar-dark bg-dark shadow-sm">
         <div class="container-fluid px-4">
             <a class="navbar-brand fw-bold text-decoration-none" href="index.php">← Back to Outage Warnings</a>
-            <span class="text-white">Resident Portal - Submit Issue</span>
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-white">Resident Portal - Submit Issue</span>
+                <button id="pwa-install-btn" class="btn btn-outline-info btn-sm d-none" title="Install this app">
+                    <i class="bi bi-download"></i> Install App
+                </button>
+            </div>
         </div>
     </nav>
 
@@ -136,5 +149,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_complaint'])) {
 
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // PWA: Register Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/Web_base_project/sw.js').catch(() => {});
+        }
+        // PWA: Install prompt
+        let _deferredPrompt;
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            _deferredPrompt = e;
+            document.getElementById('pwa-install-btn').classList.remove('d-none');
+        });
+        document.getElementById('pwa-install-btn')?.addEventListener('click', async () => {
+            if (!_deferredPrompt) return;
+            _deferredPrompt.prompt();
+            const { outcome } = await _deferredPrompt.userChoice;
+            _deferredPrompt = null;
+            if (outcome === 'accepted') document.getElementById('pwa-install-btn').classList.add('d-none');
+        });
+    </script>
 </body>
 </html>

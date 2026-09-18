@@ -12,7 +12,10 @@ $search_date = isset($_GET['date']) ? trim($_GET['date']) : '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Balangoda Utility Outage Warnings</title>
+    <link rel="manifest" href="/Web_base_project/manifest.json">
+    <meta name="theme-color" content="#0d6efd">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="css/style.css">
     <style>
         .card:hover { 
@@ -31,21 +34,18 @@ $search_date = isset($_GET['date']) ? trim($_GET['date']) : '';
                 <a href="submit_complaint.php" class="btn btn-danger btn-sm fw-bold">🚨 Report Issue</a>
                 <a href="report.php" class="btn btn-outline-light btn-sm">Track Complaints</a>
                 <a href="admin/login.php" class="btn btn-outline-secondary btn-sm text-white-50">Admin</a>
+                <button id="pwa-install-btn" class="btn btn-outline-info btn-sm d-none" title="Install as App">
+                    <i class="bi bi-download"></i> Install App
+                </button>
             </div>
         </div>
     </nav>
 
     <div class="container">
-        <!-- Page Header & Action Buttons -->
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-            <div>
-                <h3 class="fw-bold mb-1">Active & Scheduled Outage Warnings</h3>
-                <p class="text-muted mb-0 small">Official municipal utility alerts for electricity, water, and roadways in Balangoda.</p>
-            </div>
-            <div class="d-flex gap-2">
-                <a href="submit_complaint.php" class="btn btn-danger shadow-sm fw-bold">🚨 Report Utility Issue</a>
-                <a href="report.php" class="btn btn-outline-primary shadow-sm fw-bold">Track Complaints</a>
-            </div>
+        <!-- Page Header -->
+        <div class="mb-4">
+            <h3 class="fw-bold mb-1">Active &amp; Scheduled Outage Warnings</h3>
+            <p class="text-muted mb-0 small">Official municipal utility alerts for electricity, water, and roadways in Balangoda.</p>
         </div>
 
         <!-- Advanced Filter & Search Bar -->
@@ -162,5 +162,28 @@ $search_date = isset($_GET['date']) ? trim($_GET['date']) : '';
 
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // PWA: Register Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/Web_base_project/sw.js').catch(() => {});
+        }
+        // PWA: Install prompt
+        let _deferredPrompt;
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            _deferredPrompt = e;
+            const btn = document.getElementById('pwa-install-btn');
+            if (btn) btn.classList.remove('d-none');
+        });
+        document.getElementById('pwa-install-btn')?.addEventListener('click', async () => {
+            if (!_deferredPrompt) return;
+            _deferredPrompt.prompt();
+            const { outcome } = await _deferredPrompt.userChoice;
+            _deferredPrompt = null;
+            if (outcome === 'accepted') {
+                document.getElementById('pwa-install-btn').classList.add('d-none');
+            }
+        });
+    </script>
 </body>
 </html>

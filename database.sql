@@ -45,3 +45,14 @@ CREATE TABLE IF NOT EXISTS `complaints` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`complaint_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 4. Notifications Table
+CREATE TABLE IF NOT EXISTS `notifications` (
+  `notification_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `target_type`     ENUM('admin','client') NOT NULL,
+  `target_ref`      VARCHAR(100) DEFAULT NULL,
+  `message`         TEXT NOT NULL,
+  `link`            VARCHAR(255) DEFAULT NULL,
+  `is_read`         TINYINT(1) DEFAULT 0,
+  `created_at`      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
