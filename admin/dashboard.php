@@ -2,7 +2,7 @@
 session_start();
 // Redirect to login if the admin is not authenticated
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: login.php");
+    header("Location: ../login.php?role=admin&msg=login_required&redirect=" . urlencode('admin/dashboard.php'));
     exit();
 }
 
@@ -41,11 +41,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_warning'])) {
     $end_time = $_POST['end_time'] ?? '';
     $admin_id = $_SESSION['admin_id'];
 
+    $start_ts = strtotime($start_time);
+    $end_ts = strtotime($end_time);
+    $today_start = strtotime(date('Y-m-d 00:00:00'));
+
     if (empty($title) || empty($description) || empty($start_time) || empty($end_time)) {
         $message = "All warning fields are required.";
         $message_type = "danger";
-    } elseif (strtotime($end_time) <= strtotime($start_time)) {
-        $message = "Warning End Time must be strictly after Start Time.";
+    } elseif ($start_ts < $today_start) {
+        $message = "Start Date cannot be in the past. Only today and future dates are allowed.";
+        $message_type = "danger";
+    } elseif ($end_ts < $start_ts) {
+        $message = "Warning End Time must be the same as or after Start Time.";
         $message_type = "danger";
     } else {
         $stmt = $conn->prepare("INSERT INTO warnings (utility_type, title, description, color_code, start_time, end_time, posted_by) VALUES (?, ?, ?, ?, ?, ?, ?)");
@@ -149,7 +156,7 @@ if ($an_res) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Balangoda Warnings</title>
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="../manifest.json">
     <meta name="theme-color" content="#0d6efd">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -358,11 +365,13 @@ if ($an_res) {
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Start Time</label>
-                                <input type="datetime-local" name="start_time" class="form-control" required>
+                                <input type="datetime-local" id="warn_start_time" name="start_time" class="form-control" min="<?= date('Y-m-d\T00:00') ?>" required>
+                                <div class="invalid-feedback">Start date cannot be before today.</div>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">End Time</label>
-                                <input type="datetime-local" name="end_time" class="form-control" required>
+                                <input type="datetime-local" id="warn_end_time" name="end_time" class="form-control" min="<?= date('Y-m-d\T00:00') ?>" required>
+                                <div class="invalid-feedback">End time must be after start time and not in the past.</div>
                             </div>
                         </div>
                         <button type="submit" name="add_warning" class="btn btn-primary w-100 py-2 fw-semibold">Publish
@@ -503,7 +512,7 @@ if ($an_res) {
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- PWA: SW registration, install prompt, notifications, beforeunload guard -->
-    <script src="/js/pwa.js"></script>
+    <script src="../js/pwa.js"></script>
     <script>
         // ── Show "Enable Notifications" button if permission not yet granted ──
         if ('Notification' in window && Notification.permission === 'default') {
@@ -511,7 +520,7 @@ if ($an_res) {
         }
 
         // ── Notification badge auto-poll (every 30s) ──────────────────
-        const NOTIF_API = '/api/admin_notif_count.php';
+        const NOTIF_API = '../api/admin_notif_count.php';
 
         async function fetchNotifCount() {
             try {
@@ -553,6 +562,68 @@ if ($an_res) {
                 document.querySelectorAll('.notif-item.unread').forEach(el => el.classList.remove('unread'));
             } catch (e) { }
         });
+
+        // ── Date-time dependency: Today & future only, and End Time >= Start Time ────────
+        (function () {
+            const startEl = document.getElementById('warn_start_time');
+            const endEl = document.getElementById('warn_end_time');
+            if (!startEl || !endEl) return;
+
+            function getTodayMin() {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}T00:00`;
+            }
+
+            const todayMin = getTodayMin();
+            startEl.min = todayMin;
+            endEl.min = todayMin;
+
+            function validateDates() {
+                const startVal = startEl.value;
+                const endVal = endEl.value;
+
+                // Validate start date is not before today
+                if (startVal && startVal < todayMin) {
+                    startEl.classList.add('is-invalid');
+                } else {
+                    startEl.classList.remove('is-invalid');
+                }
+
+                // Sync endEl.min with startVal or todayMin
+                const effectiveEndMin = (startVal && startVal > todayMin) ? startVal : todayMin;
+                endEl.min = effectiveEndMin;
+
+                // Validate end date
+                if (endVal && startVal && endVal < startVal) {
+                    endEl.classList.add('is-invalid');
+                } else if (endVal && endVal < todayMin) {
+                    endEl.classList.add('is-invalid');
+                } else {
+                    endEl.classList.remove('is-invalid');
+                }
+            }
+
+            startEl.addEventListener('change', validateDates);
+            startEl.addEventListener('input', validateDates);
+            endEl.addEventListener('change', validateDates);
+            endEl.addEventListener('input', validateDates);
+
+            // Guard on form submit
+            startEl.closest('form')?.addEventListener('submit', function (e) {
+                validateDates();
+                if (startEl.classList.contains('is-invalid') || endEl.classList.contains('is-invalid')) {
+                    e.preventDefault();
+                    if (startEl.classList.contains('is-invalid')) {
+                        startEl.focus();
+                    } else {
+                        endEl.focus();
+                    }
+                }
+            });
+        })();
     </script>
 </body>
 

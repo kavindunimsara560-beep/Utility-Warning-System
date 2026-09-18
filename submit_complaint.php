@@ -1,8 +1,21 @@
 <?php
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
+session_start();
+
+// Strict Auth Guard: Customer account and login required to lodge complaints
+if (!isset($_SESSION['customer_id'])) {
+    header("Location: login.php?role=customer&msg=login_required&redirect=" . urlencode('submit_complaint.php'));
+    exit();
+}
 
 require_once 'config/db_connect.php';
+
+// Pre-fill from verified customer session
+$sess_name  = htmlspecialchars($_SESSION['customer_name']  ?? '');
+$sess_phone = htmlspecialchars($_SESSION['customer_phone'] ?? '');
+$sess_email = htmlspecialchars($_SESSION['customer_email'] ?? '');
+$cust_logged = true;
 
 $success_msg = "";
 $error_msg = "";
@@ -48,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_complaint'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Submit Complaint - Balangoda Utility Portal</title>
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0d6efd">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -63,6 +76,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_complaint'])) {
             <a class="navbar-brand fw-bold text-decoration-none" href="index.php">← Back to Outage Warnings</a>
             <div class="d-flex align-items-center gap-2">
                 <span class="text-white">Resident Portal - Submit Issue</span>
+                <?php if ($cust_logged): ?>
+                    <a href="customer/dashboard.php" class="btn btn-outline-info btn-sm">
+                        <i class="bi bi-person-circle me-1"></i>My Portal
+                    </a>
+                <?php endif; ?>
                 <button class="btn btn-outline-info btn-sm d-none pwa-install-btn" title="Install this app">
                     <i class="bi bi-download"></i> Install App
                 </button>
@@ -102,9 +120,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_complaint'])) {
                     <?php endif; ?>
 
                     <form method="POST" action="submit_complaint.php">
+                        <?php if ($cust_logged): ?>
+                        <div class="alert alert-info d-flex align-items-center gap-2 py-2 mb-3" style="border-radius:10px;font-size:.88rem;">
+                            <i class="bi bi-person-check-fill fs-5"></i>
+                            <span>Logged in as <strong><?= $sess_name ?></strong>. Contact fields are pre-filled from your account.</span>
+                            <a href="customer/dashboard.php" class="ms-auto btn btn-outline-primary btn-sm">My Portal</a>
+                        </div>
+                        <?php endif; ?>
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control" placeholder="Enter your full name" required value="<?php echo isset($_POST['name']) ? htmlspecialchars($_POST['name']) : ''; ?>">
+                            <input type="text" name="name" class="form-control" placeholder="Enter your full name" required
+                                   value="<?= $cust_logged ? $sess_name : (isset($_POST['name']) ? htmlspecialchars($_POST['name']) : '') ?>"
+                                   <?= $cust_logged ? 'readonly' : '' ?>>
                         </div>
 
                         <div class="mb-3">
@@ -115,12 +142,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_complaint'])) {
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Phone Number</label>
-                                <input type="text" name="phone" class="form-control" placeholder="e.g. 0771234567" value="<?php echo isset($_POST['phone']) ? htmlspecialchars($_POST['phone']) : ''; ?>">
+                                <input type="text" name="phone" class="form-control" placeholder="e.g. 0771234567"
+                                       value="<?= $cust_logged ? $sess_phone : (isset($_POST['phone']) ? htmlspecialchars($_POST['phone']) : '') ?>"
+                                       <?= $cust_logged ? 'readonly' : '' ?>>
                                 <small class="text-muted">Provide phone or email (or both)</small>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Email Address</label>
-                                <input type="email" name="email" class="form-control" placeholder="name@example.com" value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
+                                <input type="email" name="email" class="form-control" placeholder="name@example.com"
+                                       value="<?= $cust_logged ? $sess_email : (isset($_POST['email']) ? htmlspecialchars($_POST['email']) : '') ?>"
+                                       <?= $cust_logged ? 'readonly' : '' ?>>
                             </div>
                         </div>
 
@@ -149,6 +180,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_complaint'])) {
 
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/pwa.js"></script>
+    <script src="js/pwa.js"></script>
 </body>
 </html>
