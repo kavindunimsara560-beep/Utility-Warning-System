@@ -1,41 +1,56 @@
 <?php
+session_start();
+
+// Auth guard — customers only
+if (!isset($_SESSION['customer_id'])) {
+    header("Location: login.php?role=customer&msg=login_required&redirect=" . urlencode('report.php'));
+    exit();
+}
+
 // Include database connection
 require_once 'config/db_connect.php';
 
+$customer_name  = htmlspecialchars($_SESSION['customer_name']  ?? '');
+$customer_phone = $_SESSION['customer_phone'] ?? '';
+$customer_email = $_SESSION['customer_email'] ?? '';
+
 $searchQuery = "";
 $result = null;
-$client_notifications = []; // Notifications for this client
+$client_notifications = [];
 
-// Check if a search was performed
-if (isset($_GET['contact']) && !empty(trim($_GET['contact']))) {
-    $searchQuery = trim($_GET['contact']);
-    $stmt = $conn->prepare("SELECT * FROM complaints WHERE contact_info LIKE ? OR resident_name LIKE ? OR title LIKE ? ORDER BY complaint_id DESC");
+// Auto-search by logged-in customer's contact info (or manual override)
+$auto_contact = $customer_phone ?: $customer_email;
+$searchQuery  = isset($_GET['contact']) && trim($_GET['contact']) !== '' ? trim($_GET['contact']) : $auto_contact;
+
+if (!empty($searchQuery)) {
+    $stmt = $conn->prepare("SELECT * FROM complaints WHERE contact_info LIKE ? OR contact_info LIKE ? OR resident_name LIKE ? ORDER BY complaint_id DESC");
     if ($stmt) {
-        $searchTerm = "%" . $searchQuery . "%";
-        $stmt->bind_param("sss", $searchTerm, $searchTerm, $searchTerm);
+        $phoneTerm = "%" . $customer_phone . "%";
+        $emailTerm = "%" . $customer_email . "%";
+        $nameTerm  = "%" . $searchQuery . "%";
+        $stmt->bind_param("sss", $phoneTerm, $emailTerm, $nameTerm);
         $stmt->execute();
         $result = $stmt->get_result();
     }
-    // Fetch unread client notifications matching this contact
-    $notif_stmt = $conn->prepare("SELECT * FROM notifications WHERE target_type='client' AND target_ref LIKE ? AND is_read=0 ORDER BY created_at DESC");
+    // Fetch unread client notifications
+    $notif_stmt = $conn->prepare("SELECT * FROM notifications WHERE target_type='client' AND (target_ref LIKE ? OR target_ref LIKE ?) AND is_read=0 ORDER BY created_at DESC");
     if ($notif_stmt) {
-        $notif_stmt->bind_param("s", $searchTerm);
+        $phoneTerm2 = "%" . $customer_phone . "%";
+        $emailTerm2 = "%" . $customer_email . "%";
+        $notif_stmt->bind_param("ss", $phoneTerm2, $emailTerm2);
         $notif_stmt->execute();
         $notif_res = $notif_stmt->get_result();
         while ($nrow = $notif_res->fetch_assoc()) {
             $client_notifications[] = $nrow;
         }
         $notif_stmt->close();
-        // Mark them as read
         if (!empty($client_notifications)) {
-            $mark_stmt = $conn->prepare("UPDATE notifications SET is_read=1 WHERE target_type='client' AND target_ref LIKE ? AND is_read=0");
-            if ($mark_stmt) { $mark_stmt->bind_param("s", $searchTerm); $mark_stmt->execute(); $mark_stmt->close(); }
+            $mark_stmt = $conn->prepare("UPDATE notifications SET is_read=1 WHERE target_type='client' AND (target_ref LIKE ? OR target_ref LIKE ?) AND is_read=0");
+            if ($mark_stmt) { $mark_stmt->bind_param("ss", $phoneTerm2, $emailTerm2); $mark_stmt->execute(); $mark_stmt->close(); }
         }
     }
 } else {
-    // Default view: Show recent complaints before any search is made
-    $sql = "SELECT * FROM complaints ORDER BY complaint_id DESC LIMIT 20";
-    $result = $conn->query($sql);
+    $result = null;
 }
 ?>
 <!DOCTYPE html>
@@ -44,7 +59,7 @@ if (isset($_GET['contact']) && !empty(trim($_GET['contact']))) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resident Portal - Track Complaints | Balangoda Utility Warnings</title>
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0d6efd">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -58,7 +73,11 @@ if (isset($_GET['contact']) && !empty(trim($_GET['contact']))) {
         <div class="container-fluid px-4">
             <a class="navbar-brand fw-bold text-decoration-none" href="index.php">← Back to Outage Warnings</a>
             <div class="d-flex align-items-center gap-2">
-                <span class="text-white">Resident Portal - Complaints</span>
+                <span class="text-white">Resident Portal - My Complaints</span>
+                <a href="customer/dashboard.php" class="btn btn-outline-info btn-sm">
+                    <i class="bi bi-person-circle me-1"></i><?= $customer_name ?>
+                </a>
+                <a href="customer/logout.php" class="btn btn-outline-danger btn-sm"><i class="bi bi-box-arrow-right"></i></a>
                 <button class="btn btn-outline-info btn-sm d-none pwa-install-btn" title="Install this app">
                     <i class="bi bi-download"></i> Install App
                 </button>
@@ -184,6 +203,6 @@ if (isset($_GET['contact']) && !empty(trim($_GET['contact']))) {
 
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/pwa.js"></script>
+    <script src="js/pwa.js"></script>
 </body>
 </html>

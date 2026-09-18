@@ -56,3 +56,18 @@ CREATE TABLE IF NOT EXISTS `notifications` (
   `is_read`         TINYINT(1) DEFAULT 0,
   `created_at`      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 5. Customers Table (resident accounts)
+CREATE TABLE IF NOT EXISTS `customers` (
+  `customer_id`         INT AUTO_INCREMENT PRIMARY KEY,
+  `full_name`           VARCHAR(100) NOT NULL,
+  `phone`               VARCHAR(20)  NOT NULL,
+  `email`               VARCHAR(120) NOT NULL UNIQUE,
+  `address`             TEXT         NOT NULL,
+  `electricity_bill_no` VARCHAR(50)  DEFAULT NULL,
+  `water_bill_no`       VARCHAR(50)  DEFAULT NULL,
+  `password_hash`       VARCHAR(255) NOT NULL,
+  `email_verified`      TINYINT(1)   DEFAULT 0,
+  `verify_token`        VARCHAR(64)  DEFAULT NULL,
+  `created_at`          TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
