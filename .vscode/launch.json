@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Launch Balangoda Portal (Localhost)",
+            "url": "http://localhost/Web_base_project/",
+            "webRoot": "${workspaceFolder}"
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Launch Resident Portal",
+            "url": "http://localhost/Web_base_project/customer/dashboard.php",
+            "webRoot": "${workspaceFolder}"
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Launch Admin Console",
+            "url": "http://localhost/Web_base_project/admin/dashboard.php",
+            "webRoot": "${workspaceFolder}"
+        }
+    ]
+}

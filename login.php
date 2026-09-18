@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     if (empty($email) || empty($password)) {
         $cust_error = "Please enter your email and password.";
     } else {
-        $stmt = $conn->prepare("SELECT customer_id, full_name, phone, email, password_hash, email_verified FROM customers WHERE email = ? LIMIT 1");
+        $stmt = $conn->prepare("SELECT customer_id, full_name, phone, email, profile_pic, password_hash, email_verified FROM customers WHERE email = ? LIMIT 1");
         if ($stmt) {
             $stmt->bind_param("s", $email);
             $stmt->execute();
@@ -78,11 +78,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             } elseif (!password_verify($password, $cust['password_hash'])) {
                 $cust_error = "Incorrect password. Please verify your credentials and try again.";
             } else {
-                // Success: initialize customer session
-                $_SESSION['customer_id']    = $cust['customer_id'];
-                $_SESSION['customer_name']  = $cust['full_name'];
-                $_SESSION['customer_email'] = $cust['email'];
-                $_SESSION['customer_phone'] = $cust['phone'];
+                // Success: initialize customer session and clear admin session to prevent overlap
+                session_regenerate_id(true);
+                unset($_SESSION['admin_id'], $_SESSION['admin_username'], $_SESSION['admin_email'], $_SESSION['admin_fullname'], $_SESSION['admin_avatar']);
+                $_SESSION['active_role']     = 'customer';
+                $_SESSION['customer_id']     = $cust['customer_id'];
+                $_SESSION['customer_name']   = $cust['full_name'];
+                $_SESSION['customer_email']  = $cust['email'];
+                $_SESSION['customer_phone']  = $cust['phone'];
+                $_SESSION['customer_avatar'] = $cust['profile_pic'] ?? null;
 
                 $target = !empty($redirect) ? $redirect : 'customer/dashboard.php';
                 header("Location: " . $target);
@@ -107,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($identity) || empty($password)) {
             $admin_error = "Please enter your username/email and password.";
         } else {
-            $stmt = $conn->prepare("SELECT admin_id, username, email, password_hash FROM admins WHERE username = ? OR email = ? LIMIT 1");
+            $stmt = $conn->prepare("SELECT admin_id, username, full_name, email, profile_pic, password_hash FROM admins WHERE username = ? OR email = ? LIMIT 1");
             if ($stmt) {
                 $stmt->bind_param("ss", $identity, $identity);
                 $stmt->execute();
@@ -116,9 +120,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 if ($result && $row = $result->fetch_assoc()) {
                     if (password_verify($password, $row['password_hash'])) {
                         session_regenerate_id(true);
+                        unset($_SESSION['customer_id'], $_SESSION['customer_name'], $_SESSION['customer_email'], $_SESSION['customer_phone'], $_SESSION['customer_avatar']);
+                        $_SESSION['active_role']    = 'admin';
                         $_SESSION['admin_id']       = $row['admin_id'];
                         $_SESSION['admin_username'] = $row['username'];
                         $_SESSION['admin_email']    = $row['email'];
+                        $_SESSION['admin_fullname'] = $row['full_name'] ?? null;
+                        $_SESSION['admin_avatar']   = $row['profile_pic'] ?? null;
 
                         $target = (!empty($redirect) && strpos($redirect, 'admin/') !== false) ? $redirect : 'admin/dashboard.php';
                         header("Location: " . $target);
@@ -171,9 +179,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $ins->close();
                     // Auto login
                     session_regenerate_id(true);
+                    unset($_SESSION['customer_id'], $_SESSION['customer_name'], $_SESSION['customer_email'], $_SESSION['customer_phone'], $_SESSION['customer_avatar']);
+                    $_SESSION['active_role']    = 'admin';
                     $_SESSION['admin_id']       = $new_id;
                     $_SESSION['admin_username'] = $username;
                     $_SESSION['admin_email']    = $email;
+                    $_SESSION['admin_fullname'] = null;
+                    $_SESSION['admin_avatar']   = null;
                     header("Location: admin/dashboard.php?msg=account_created");
                     exit();
                 } else {

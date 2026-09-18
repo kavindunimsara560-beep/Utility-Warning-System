@@ -79,7 +79,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_warning'])) {
     <nav class="navbar navbar-dark bg-dark shadow-sm mb-4">
         <div class="container-fluid px-4">
             <span class="navbar-brand mb-0 h1 fw-bold">Edit Outage Warning Notice</span>
-            <a href="dashboard.php" class="btn btn-outline-light btn-sm">← Back to Dashboard</a>
+            <div class="d-flex align-items-center gap-2">
+                <a href="profile.php" class="btn btn-outline-info btn-sm"><i class="bi bi-person-circle me-1"></i>My
+                    Profile</a>
+                <a href="dashboard.php" class="btn btn-outline-light btn-sm">← Back to Dashboard</a>
+            </div>
         </div>
     </nav>
 

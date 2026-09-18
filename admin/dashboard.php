@@ -7,6 +7,17 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 require '../config/db_connect.php';
+require_once '../config/profile_helper.php';
+ensure_profile_schema($conn);
+
+$admin_id = (int)$_SESSION['admin_id'];
+$admin_stmt = $conn->prepare("SELECT username, full_name, profile_pic FROM admins WHERE admin_id = ?");
+$admin_stmt->bind_param("i", $admin_id);
+$admin_stmt->execute();
+$admin_info = $admin_stmt->get_result()->fetch_assoc();
+$admin_stmt->close();
+$admin_display_name = !empty($admin_info['full_name']) ? $admin_info['full_name'] : ($admin_info['username'] ?? $_SESSION['admin_username'] ?? 'Admin');
+$admin_profile_pic = $admin_info['profile_pic'] ?? null;
 
 $message = "";
 $message_type = "success";
@@ -308,8 +319,16 @@ if ($an_res) {
                 <button class="btn btn-outline-info btn-sm d-none pwa-install-btn" title="Install as App">
                     <i class="bi bi-download"></i> Install
                 </button>
-                <span class="text-white-50 small">Logged in as: <strong
-                        class="text-white"><?php echo htmlspecialchars($_SESSION['admin_username'] ?? 'Admin'); ?></strong></span>
+                <a href="profile.php" class="btn btn-outline-light btn-sm d-inline-flex align-items-center gap-1" title="Manage Admin Profile">
+                    <?php if (!empty($admin_profile_pic) && file_exists('../' . $admin_profile_pic)): ?>
+                        <img src="../<?= htmlspecialchars($admin_profile_pic) ?>" alt="Avatar" style="width:20px; height:20px; border-radius:50%; object-fit:cover;">
+                    <?php else: ?>
+                        <i class="bi bi-person-circle"></i>
+                    <?php endif; ?>
+                    <span>My Profile</span>
+                </a>
+                <span class="text-white-50 small d-none d-md-inline">Logged in as: <strong
+                        class="text-white"><?php echo htmlspecialchars($admin_display_name); ?></strong></span>
                 <a href="logout.php" class="btn btn-outline-danger btn-sm">Logout</a>
             </div>
         </div>
@@ -324,6 +343,28 @@ if ($an_res) {
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         <?php endif; ?>
+    <!-- Admin Profile Quick Access Bar -->
+    <div class="container-fluid px-4 mb-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between p-3 bg-white rounded-3 shadow-sm border gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <?php if (!empty($admin_profile_pic) && file_exists('../' . $admin_profile_pic)): ?>
+                    <img src="../<?= htmlspecialchars($admin_profile_pic) ?>" alt="Avatar" style="width:46px; height:46px; border-radius:50%; object-fit:cover; border:2px solid #3b82f6;">
+                <?php else: ?>
+                    <div style="width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg, #1e293b, #3b82f6); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1.2rem;">
+                        <?= mb_strtoupper(mb_substr($admin_display_name, 0, 1)) ?>
+                    </div>
+                <?php endif; ?>
+                <div>
+                    <h6 class="fw-bold mb-0 text-dark"><?= htmlspecialchars($admin_display_name) ?></h6>
+                    <small class="text-muted"><span class="badge bg-primary-subtle text-primary me-1">Municipal Administrator</span> @<?= htmlspecialchars($_SESSION['admin_username'] ?? 'admin') ?></small>
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="profile.php" class="btn btn-primary btn-sm px-3 fw-bold shadow-sm d-inline-flex align-items-center gap-1">
+                    <i class="bi bi-person-gear fs-6"></i> Edit Administrator Profile &amp; Password
+                </a>
+            </div>
+        </div>
     </div>
 
     <div class="container-fluid px-4">

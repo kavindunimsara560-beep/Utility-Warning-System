@@ -6,11 +6,63 @@ if (!isset($_SESSION['customer_id'])) {
 }
 
 require_once '../config/db_connect.php';
+require_once '../config/profile_helper.php';
+ensure_profile_schema($conn);
 
 $customer_id    = (int)$_SESSION['customer_id'];
-$customer_name  = htmlspecialchars($_SESSION['customer_name']  ?? 'Resident');
-$customer_email = htmlspecialchars($_SESSION['customer_email'] ?? '');
-$customer_phone = htmlspecialchars($_SESSION['customer_phone'] ?? '');
+
+// Handle Profile / Residence Update from Modal
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_profile_modal') {
+    $full_name = trim($_POST['full_name'] ?? '');
+    $phone     = trim($_POST['phone'] ?? '');
+    $address   = trim($_POST['address'] ?? '');
+    $elec_no   = trim($_POST['electricity_bill_no'] ?? '');
+    $water_no  = trim($_POST['water_bill_no'] ?? '');
+
+    $err = '';
+    if (empty($phone) || empty($address)) {
+        $err = "Contact phone number and residential address are required.";
+    } elseif (empty($full_name)) {
+        $err = "Full name cannot be empty.";
+    }
+
+    // Get current record to preserve or replace avatar
+    $cur_stmt = $conn->prepare("SELECT profile_pic FROM customers WHERE customer_id = ?");
+    $cur_stmt->bind_param("i", $customer_id);
+    $cur_stmt->execute();
+    $cur_row = $cur_stmt->get_result()->fetch_assoc();
+    $cur_stmt->close();
+    $avatar_path = $cur_row['profile_pic'] ?? null;
+
+    if (empty($err) && isset($_FILES['avatar']) && $_FILES['avatar']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $upload_res = handle_avatar_upload($_FILES['avatar'], 'cust', $customer_id, $avatar_path);
+        if ($upload_res['success']) {
+            $avatar_path = $upload_res['path'];
+        } else {
+            $err = $upload_res['error'];
+        }
+    }
+
+    if (empty($err)) {
+        $upd = $conn->prepare("UPDATE customers SET full_name = ?, phone = ?, address = ?, electricity_bill_no = ?, water_bill_no = ?, profile_pic = ? WHERE customer_id = ?");
+        $upd->bind_param("ssssssi", $full_name, $phone, $address, $elec_no, $water_no, $avatar_path, $customer_id);
+        if ($upd->execute()) {
+            $_SESSION['customer_name']   = $full_name;
+            $_SESSION['customer_phone']  = $phone;
+            $_SESSION['customer_avatar'] = $avatar_path;
+            $upd->close();
+            header("Location: dashboard.php?msg=profile_updated");
+            exit();
+        } else {
+            $err = "Database error: " . $conn->error;
+        }
+        $upd->close();
+    }
+
+    if (!empty($err)) {
+        $flash = ['type' => 'danger', 'text' => '⚠️ ' . htmlspecialchars($err)];
+    }
+}
 
 // Fetch full customer record
 $crec = $conn->prepare("SELECT * FROM customers WHERE customer_id = ?");
@@ -19,12 +71,17 @@ $crec->execute();
 $cdata = $crec->get_result()->fetch_assoc();
 $crec->close();
 
+$customer_name  = htmlspecialchars($_SESSION['customer_name']  ?? ($cdata['full_name'] ?? 'Resident'));
+$customer_email = htmlspecialchars($_SESSION['customer_email'] ?? ($cdata['email'] ?? ''));
+$customer_phone = htmlspecialchars($_SESSION['customer_phone'] ?? ($cdata['phone'] ?? ''));
+
 // Message
 $msg_map = [
     'verified'          => ['type'=>'success', 'text'=>'🎉 Email verified successfully! Welcome to your portal.'],
     'already_verified'  => ['type'=>'info',    'text'=>'Your email is already verified.'],
+    'profile_updated'   => ['type'=>'success', 'text'=>'✅ Your profile and residence details have been updated successfully!'],
 ];
-$flash = isset($_GET['msg']) ? ($msg_map[$_GET['msg']] ?? null) : null;
+$flash = $flash ?? (isset($_GET['msg']) ? ($msg_map[$_GET['msg']] ?? null) : null);
 
 // Fetch this customer's complaints (matched by phone or email)
 $contact_search = '%' . ($cdata['phone'] ?? '') . '%';
@@ -135,6 +192,28 @@ function utility_icon($type) {
             display:flex; align-items:center; justify-content:center;
             font-size:1.4rem; font-weight:800; color:#fff;
             flex-shrink:0; box-shadow:0 4px 12px rgba(59,130,246,0.35);
+        }
+        .avatar-circle-img {
+            width:56px; height:56px; border-radius:50%;
+            object-fit:cover; border:2px solid rgba(255,255,255,0.85);
+            box-shadow:0 4px 12px rgba(59,130,246,0.35);
+            flex-shrink:0;
+        }
+        .nav-avatar-mini {
+            width:22px; height:22px; border-radius:50%;
+            object-fit:cover; vertical-align:middle; margin-right:4px;
+        }
+        .btn-update-account {
+            background:rgba(255,255,255,.12); color:#ffffff; font-weight:600;
+            border:1px solid rgba(255,255,255,.22); padding:0.65rem 1.15rem;
+            border-radius:10px; backdrop-filter:blur(8px);
+            transition:all .2s ease; text-decoration:none;
+            display:inline-flex; align-items:center; gap:0.5rem;
+            font-size:0.92rem; cursor:pointer;
+        }
+        .btn-update-account:hover {
+            background:rgba(255,255,255,.22); color:#38bdf8; border-color:#38bdf8;
+            transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,0.2);
         }
         .hero-strip h2 { font-size:1.35rem; font-weight:800; margin:0; }
         .hero-strip p  { color:#94a3b8; font-size:.84rem; margin:0; }
@@ -282,26 +361,40 @@ function utility_icon($type) {
             <div class="d-flex align-items-center gap-2">
                 <a href="../index.php" class="nav-btn"><i class="bi bi-house me-1"></i>Home</a>
                 <span class="text-white-50 small d-none d-md-inline">|</span>
-                <span class="nav-btn" style="cursor:default; color:#cbd5e1; font-size:.82rem;">👤 <?= $customer_name ?></span>
+                <a href="profile.php" class="nav-btn d-inline-flex align-items-center">
+                    <?php if (!empty($cdata['profile_pic']) && file_exists('../' . $cdata['profile_pic'])): ?>
+                        <img src="../<?= htmlspecialchars($cdata['profile_pic']) ?>" alt="Avatar" class="nav-avatar-mini">
+                    <?php else: ?>
+                        <i class="bi bi-person-circle me-1"></i>
+                    <?php endif; ?>
+                    My Profile
+                </a>
                 <a href="logout.php" class="nav-btn danger"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
             </div>
         </div>
     </div>
 </nav>
 
-<!-- Hero Strip with Sole "Report an Issue" Action -->
+<!-- Hero Strip with Profile / Residence Actions -->
 <div class="hero-strip">
     <div class="container-fluid px-4">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
             <div class="d-flex align-items-center gap-3">
-                <div class="avatar-circle"><?= mb_strtoupper(mb_substr($cdata['full_name'] ?? 'R', 0, 1)) ?></div>
+                <?php if (!empty($cdata['profile_pic']) && file_exists('../' . $cdata['profile_pic'])): ?>
+                    <img src="../<?= htmlspecialchars($cdata['profile_pic']) ?>" alt="Avatar" class="avatar-circle-img">
+                <?php else: ?>
+                    <div class="avatar-circle"><?= mb_strtoupper(mb_substr($cdata['full_name'] ?? 'R', 0, 1)) ?></div>
+                <?php endif; ?>
                 <div>
                     <h2><?= $customer_name ?></h2>
                     <p><?= $customer_email ?> &nbsp;·&nbsp; <?= $customer_phone ?></p>
                 </div>
             </div>
-            <div>
-                <!-- THE ONLY REPORT ISSUE BUTTON ON DASHBOARD -->
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button type="button" class="btn-update-account" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                    <i class="bi bi-pencil-square"></i>
+                    <span>Edit Profile / Residence</span>
+                </button>
                 <a href="../submit_complaint.php" class="btn-report-single">
                     <i class="bi bi-exclamation-triangle-fill"></i>
                     <span>Report an Issue</span>
@@ -565,6 +658,14 @@ function utility_icon($type) {
                         </div>
                         <?php endif; ?>
                     </div>
+                    <div class="mt-3 pt-3 border-top d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm flex-grow-1 d-flex align-items-center justify-content-center gap-1" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                            <i class="bi bi-pencil-square"></i> Update Residence
+                        </button>
+                        <a href="profile.php" class="btn btn-light btn-sm text-secondary border d-flex align-items-center justify-content-center px-3" title="Full Profile Page">
+                            <i class="bi bi-person-gear"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -611,8 +712,131 @@ function utility_icon($type) {
     </div>
 </div>
 
+<!-- ============================================================ -->
+<!-- EDIT PROFILE / RESIDENCE MODAL                              -->
+<!-- ============================================================ -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px; overflow:hidden;">
+            <div class="modal-header text-white" style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-bottom:1px solid rgba(255,255,255,0.1);">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary p-2 rounded-circle"><i class="bi bi-house-gear-fill fs-5"></i></span>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="editProfileModalLabel">Update Residence &amp; Account Details</h5>
+                        <small class="text-white-50">Relocated or changed meters in Balangoda? Update your contact and account records.</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="dashboard.php" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="update_profile_modal">
+                <div class="modal-body p-4 bg-light">
+                    <!-- Avatar Preview & Upload Row -->
+                    <div class="bg-white p-3 rounded-3 border mb-3 d-flex flex-column flex-sm-row align-items-center gap-3">
+                        <div class="position-relative">
+                            <?php if (!empty($cdata['profile_pic']) && file_exists('../' . $cdata['profile_pic'])): ?>
+                                <img id="modalAvatarPreview" src="../<?= htmlspecialchars($cdata['profile_pic']) ?>" alt="Avatar Preview" class="rounded-circle border border-2 border-primary shadow-sm" style="width:72px; height:72px; object-fit:cover;">
+                            <?php else: ?>
+                                <div id="modalAvatarPreviewFallback" class="avatar-circle shadow-sm" style="width:72px; height:72px; font-size:1.8rem;">
+                                    <?= mb_strtoupper(mb_substr($cdata['full_name'] ?? 'R', 0, 1)) ?>
+                                </div>
+                                <img id="modalAvatarPreview" src="" alt="Avatar Preview" class="rounded-circle border border-2 border-primary shadow-sm d-none" style="width:72px; height:72px; object-fit:cover;">
+                            <?php endif; ?>
+                        </div>
+                        <div class="flex-grow-1">
+                            <label for="modalAvatarInput" class="form-label fw-bold text-dark mb-1">Profile Photo</label>
+                            <input type="file" class="form-control form-control-sm" id="modalAvatarInput" name="avatar" accept="image/png, image/jpeg, image/webp, image/gif">
+                            <small class="text-muted" style="font-size:0.75rem;">Supported: JPG, PNG, WEBP, GIF (Max 3MB). Square format recommended.</small>
+                        </div>
+                    </div>
+
+                    <!-- Personal Info -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-dark small">Full Name <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="bi bi-person text-secondary"></i></span>
+                                <input type="text" name="full_name" class="form-control" required value="<?= htmlspecialchars($cdata['full_name'] ?? '') ?>">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-dark small">Contact Phone Number <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="bi bi-telephone text-secondary"></i></span>
+                                <input type="tel" name="phone" class="form-control" required placeholder="07X XXX XXXX" value="<?= htmlspecialchars($cdata['phone'] ?? '') ?>">
+                            </div>
+                            <small class="text-muted" style="font-size:0.75rem;">Complaints and outage SMS notifications match this phone number.</small>
+                        </div>
+                    </div>
+
+                    <!-- Physical Address -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark small">Physical Residential Address <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="bi bi-geo-alt text-secondary"></i></span>
+                            <textarea name="address" rows="2" class="form-control" required placeholder="e.g., No. 12, Main Street, Balangoda"><?= htmlspecialchars($cdata['address'] ?? '') ?></textarea>
+                        </div>
+                        <small class="text-muted" style="font-size:0.75rem;">Update this whenever you move so emergency repair crews locate issues accurately.</small>
+                    </div>
+
+                    <!-- Utility Accounts -->
+                    <div class="bg-white p-3 rounded-3 border">
+                        <h6 class="fw-bold text-dark mb-2 d-flex align-items-center gap-2" style="font-size:0.85rem;">
+                            <i class="bi bi-link-45deg text-primary fs-5"></i> Utility Meter / Account Numbers (Balangoda)
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-secondary small mb-1">
+                                    <i class="bi bi-lightning-charge-fill text-warning me-1"></i>Electricity (CEB) Account No
+                                </label>
+                                <input type="text" name="electricity_bill_no" class="form-control form-control-sm" placeholder="e.g. 045-8192-33" value="<?= htmlspecialchars($cdata['electricity_bill_no'] ?? '') ?>">
+                                <small class="text-muted" style="font-size:0.72rem;">Found on your monthly electricity bill statement.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-secondary small mb-1">
+                                    <i class="bi bi-droplet-fill text-info me-1"></i>Water Supply (NWSDB) Account No
+                                </label>
+                                <input type="text" name="water_bill_no" class="form-control form-control-sm" placeholder="e.g. BAL/4412/08" value="<?= htmlspecialchars($cdata['water_bill_no'] ?? '') ?>">
+                                <small class="text-muted" style="font-size:0.72rem;">Found on your monthly water bill slip.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white d-flex justify-content-between">
+                    <a href="profile.php" class="text-decoration-none small text-muted">
+                        <i class="bi bi-shield-lock me-1"></i>Open Full Profile &amp; Password Settings →
+                    </a>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-sm px-4 fw-bold shadow-sm">
+                            <i class="bi bi-check2-circle me-1"></i>Save Changes
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="../js/pwa.js"></script>
+<script>
+// Live avatar preview in modal
+document.getElementById('modalAvatarInput')?.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const preview = document.getElementById('modalAvatarPreview');
+        const fallback = document.getElementById('modalAvatarPreviewFallback');
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            preview.src = evt.target.result;
+            preview.classList.remove('d-none');
+            if (fallback) fallback.classList.add('d-none');
+        };
+        reader.readAsDataURL(file);
+    }
+});
+</script>
 </body>
 </html>
 
