@@ -1,114 +1,461 @@
-/* Modern Styling for Balangoda Utility System */
+/* ==========================================================================
+   Balangoda Municipal Utility Warning System - Unified Enterprise Design System
+   ========================================================================== */
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+/* --- Global Design Tokens --- */
 :root {
-    --primary-color: #0d6efd;
-    --primary-hover: #0b5ed7;
-    --success-color: #198754;
-    --warning-color: #ffc107;
-    --danger-color: #dc3545;
-    --info-color: #0dcaf0;
-    --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    --card-hover-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+    --navy-950: #070b12;
+    --navy-900: #0f172a;
+    --navy-800: #1e293b;
+    --navy-700: #334155;
+    --slate-600: #475569;
+    --slate-500: #64748b;
+    --slate-400: #94a3b8;
+    --slate-300: #cbd5e1;
+    --slate-200: #e2e8f0;
+    --slate-100: #f1f5f9;
+    --slate-50:  #f8fafc;
+
+    --card-radius: 16px;
+    --card-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
+    --card-shadow-hover: 0 10px 28px rgba(15, 23, 42, 0.1);
+
+    /* Default Theme Accent: Resident Blue/Teal */
+    --role-primary: #2563eb;
+    --role-accent: #0ea5e9;
+    --role-gradient: linear-gradient(135deg, #2563eb 0%, #0284c7 100%);
+    --role-badge-bg: rgba(37, 99, 235, 0.12);
+    --role-badge-color: #1d4ed8;
+    --role-glow: rgba(37, 99, 235, 0.35);
 }
 
+/* --- Color-Coded Role Themes --- */
+body.theme-resident, .theme-resident {
+    --role-primary: #2563eb;
+    --role-accent: #0ea5e9;
+    --role-gradient: linear-gradient(135deg, #2563eb 0%, #0284c7 100%);
+    --role-badge-bg: rgba(37, 99, 235, 0.12);
+    --role-badge-color: #1d4ed8;
+    --role-glow: rgba(37, 99, 235, 0.35);
+}
+
+body.theme-admin, .theme-admin {
+    --role-primary: #d97706;
+    --role-accent: #f59e0b;
+    --role-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    --role-badge-bg: rgba(245, 158, 11, 0.14);
+    --role-badge-color: #b45309;
+    --role-glow: rgba(245, 158, 11, 0.38);
+}
+
+/* --- Base Typography --- */
 body {
-    background-color: #f4f6f9;
-    font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-    color: #333333;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--slate-100);
+    color: var(--navy-800);
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
 }
 
-/* Navbar */
-.navbar {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.02em;
 }
 
-.navbar-brand {
+/* --- Unified Top Navigation (.portal-nav) --- */
+.portal-nav {
+    background: linear-gradient(135deg, var(--navy-900) 0%, #161b33 100%);
+    padding: 0.8rem 0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.portal-nav .brand {
+    color: #f8fafc;
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 800;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.portal-nav .brand-badge {
+    background: var(--role-gradient);
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    box-shadow: 0 2px 10px var(--role-glow);
+}
+
+.portal-nav .brand span {
+    color: var(--role-accent);
+}
+
+.portal-nav .nav-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    color: #f1f5f9;
+    padding: 0.42rem 0.95rem;
+    font-size: 0.84rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.18s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.portal-nav .nav-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.portal-nav .nav-btn.danger {
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #fca5a5;
+}
+
+.portal-nav .nav-btn.danger:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fff;
+}
+
+.nav-avatar-mini {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+/* --- Unified Hero Header (.portal-hero) --- */
+.portal-hero {
+    background: linear-gradient(135deg, #13182e 0%, var(--navy-800) 100%);
+    color: #f8fafc;
+    padding: 2.2rem 0 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.avatar-circle {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    background: var(--role-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #ffffff;
+    flex-shrink: 0;
+    box-shadow: 0 4px 16px var(--role-glow);
+    border: 2px solid rgba(255, 255, 255, 0.85);
+}
+
+.avatar-circle-img {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 4px 16px var(--role-glow);
+}
+
+.portal-hero h2 {
+    font-size: 1.45rem;
+    font-weight: 800;
+    margin: 0;
+    color: #ffffff;
+}
+
+.portal-hero p {
+    color: var(--slate-400);
+    font-size: 0.86rem;
+    margin: 0;
+}
+
+.role-pill {
+    font-size: 0.74rem;
     font-weight: 700;
-    letter-spacing: -0.3px;
+    padding: 0.25rem 0.65rem;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
 }
 
-/* Card Enhancements */
-.card {
+/* Action buttons in hero */
+.btn-hero-action {
+    background: var(--role-gradient);
+    color: #ffffff !important;
+    font-weight: 700;
+    font-size: 0.92rem;
+    padding: 0.65rem 1.25rem;
     border-radius: 12px;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 16px var(--role-glow);
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.btn-hero-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px var(--role-glow);
+    color: #ffffff;
+}
+
+.btn-hero-outline {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 0.92rem;
+    padding: 0.65rem 1.2rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(8px);
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.btn-hero-outline:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    transform: translateY(-2px);
+}
+
+/* --- Unified Top Metric Stat Cards (.stat-card) --- */
+.stat-card {
+    background: #ffffff;
+    border-radius: var(--card-radius);
+    padding: 1.2rem 1.35rem;
     box-shadow: var(--card-shadow);
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    border: 1px solid var(--slate-200);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
-.card:hover {
-    box-shadow: var(--card-hover-shadow) !important;
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--card-shadow-hover);
+    border-color: var(--slate-300);
 }
 
-.card-header {
-    border-top-left-radius: 12px !important;
-    border-top-right-radius: 12px !important;
+.stat-card .icon-wrap,
+.stat-card .icon {
+    font-size: 1.65rem;
+    line-height: 1;
+    margin-bottom: 0.35rem;
 }
 
-.card-footer {
-    border-bottom-left-radius: 12px !important;
-    border-bottom-right-radius: 12px !important;
+.stat-card .num {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.95rem;
+    font-weight: 800;
+    color: var(--navy-900);
+    line-height: 1.15;
+}
+
+.stat-card .lbl {
+    color: var(--slate-500);
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+}
+
+/* --- Unified Portal Tabs (.portal-tabs) --- */
+.portal-tabs {
+    border-bottom: 2px solid var(--slate-200);
+    margin-bottom: 1.5rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.portal-tabs .nav-link {
+    color: var(--slate-500);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 0.75rem 1.25rem;
+    border: none;
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    background: none;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.portal-tabs .nav-link:hover {
+    color: var(--navy-900);
+}
+
+.portal-tabs .nav-link.active {
+    color: var(--role-primary);
+    border-bottom: 3px solid var(--role-primary);
+    font-weight: 700;
+    background: none;
+}
+
+/* --- Unified Cards (.portal-card) --- */
+.portal-card {
+    background: #ffffff;
+    border-radius: var(--card-radius);
+    border: 1px solid var(--slate-200);
+    box-shadow: var(--card-shadow);
+    transition: box-shadow 0.2s ease;
+}
+
+.portal-card:hover {
+    box-shadow: var(--card-shadow-hover);
+}
+
+.portal-card-header {
+    padding: 1.1rem 1.4rem;
+    border-bottom: 1px solid var(--slate-100);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.portal-card-body {
+    padding: 1.4rem;
+}
+
+/* --- Unified Tables (.portal-table) --- */
+.portal-table {
+    margin-bottom: 0;
+}
+
+.portal-table th {
+    background: var(--slate-50) !important;
+    color: var(--slate-600) !important;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.85rem 1rem !important;
+    border-bottom: 1px solid var(--slate-200) !important;
+}
+
+.portal-table td {
+    padding: 0.85rem 1rem !important;
+    vertical-align: middle;
+    font-size: 0.88rem;
+    border-bottom: 1px solid var(--slate-100);
+}
+
+.portal-table tr:hover td {
+    background-color: #fafbfd;
 }
 
 /* Status Badges */
-.badge-pending {
-    background-color: #ffc107;
-    color: #212529;
+.badge-status-resolved { background: #dcfce7; color: #15803d; font-weight: 700; border: 1px solid #bbf7d0; }
+.badge-status-progress { background: #e0f2fe; color: #0369a1; font-weight: 700; border: 1px solid #bae6fd; }
+.badge-status-pending  { background: #fef3c7; color: #b45309; font-weight: 700; border: 1px solid #fde68a; }
+
+/* Timeline notifications */
+.notif-item {
+    border-left: 3px solid var(--role-accent);
+    padding: 0.8rem 1.1rem;
+    margin-bottom: 0.75rem;
+    background: var(--slate-50);
+    border-radius: 0 12px 12px 0;
+    transition: background 0.15s;
 }
 
-.badge-in-progress {
-    background-color: #0dcaf0;
-    color: #000;
+.notif-item.read {
+    border-left-color: var(--slate-300);
+    opacity: 0.8;
 }
 
-.badge-resolved {
-    background-color: #198754;
-    color: #fff;
+.notif-item:hover {
+    background: #f1f5f9;
 }
 
-.badge-published {
-    background-color: #0d6efd;
-    color: #fff;
-}
-
-/* Forms */
-.form-control, .form-select {
-    border-radius: 8px;
-    border: 1px solid #ced4da;
-    padding: 0.6rem 0.85rem;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
+/* --- Form Controls & Universal Portal Buttons --- */
 .form-control:focus, .form-select:focus {
-    border-color: #86b7fe;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+    border-color: var(--role-accent);
+    box-shadow: 0 0 0 3px var(--role-glow);
+    outline: none;
 }
 
-/* Tables */
-.table {
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.table thead th {
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.8rem;
-    letter-spacing: 0.5px;
-}
-
-/* Buttons */
-.btn {
-    border-radius: 8px;
-    font-weight: 500;
+.portal-btn-primary {
+    background: var(--role-gradient);
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 14px var(--role-glow);
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.92rem;
+    padding: 0.65rem 1.25rem;
     transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    cursor: pointer;
 }
 
-.btn-primary {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
+.portal-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px var(--role-glow);
+    color: #ffffff !important;
 }
 
-.btn-primary:hover {
-    background-color: var(--primary-hover);
-    border-color: var(--primary-hover);
+.portal-btn-outline {
+    background: #ffffff;
+    color: var(--navy-800) !important;
+    border: 1px solid var(--slate-300);
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.92rem;
+    padding: 0.65rem 1.2rem;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    cursor: pointer;
 }
+
+.portal-btn-outline:hover {
+    background: var(--slate-100);
+    color: var(--navy-900) !important;
+    border-color: var(--slate-400);
+    transform: translateY(-1px);
+}
+

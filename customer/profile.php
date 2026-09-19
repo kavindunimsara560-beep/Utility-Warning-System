@@ -131,89 +131,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile &amp; Residence Settings — Balangoda Utility Portal</title>
     <link rel="manifest" href="../manifest.json">
-    <meta name="theme-color" content="#0d6efd">
+    <meta name="theme-color" content="#2563eb">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="../css/style.css">
     <style>
-        :root { --navy:#0f172a; --navy2:#1e293b; --blue:#3b82f6; --cyan:#38bdf8; --accent:#6366f1; }
-        body { font-family:'Outfit',system-ui,sans-serif; background:#f1f5f9; color:#1e293b; }
-
-        /* Navbar */
-        .cust-nav {
-            background:linear-gradient(135deg, var(--navy) 0%, #1a1040 100%);
-            padding:.75rem 0; box-shadow:0 4px 20px rgba(0,0,0,.3);
-        }
-        .cust-nav .brand { color:#f8fafc; font-size:1.1rem; font-weight:800; text-decoration:none; }
-        .cust-nav .brand span { color:var(--cyan); }
-        .cust-nav .nav-btn {
-            background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14);
-            border-radius:8px; color:#f1f5f9; padding:.38rem .85rem; font-size:.83rem;
-            text-decoration:none; transition:background .15s;
-        }
-        .cust-nav .nav-btn:hover { background:rgba(255,255,255,.16); color:#fff; }
-        .cust-nav .nav-btn.danger { border-color:rgba(239,68,68,.4); color:#fca5a5; }
-        .cust-nav .nav-btn.danger:hover { background:rgba(239,68,68,.15); }
-
-        /* Hero */
-        .hero-strip {
-            background:linear-gradient(135deg, #1a1040 0%, var(--navy2) 100%);
-            color:#f8fafc; padding:2rem 0 1.8rem;
-            border-bottom:1px solid rgba(255,255,255,.06);
-        }
-        .avatar-box {
-            width:100px; height:100px; border-radius:50%;
-            object-fit:cover; border:3px solid #fff;
-            box-shadow:0 8px 24px rgba(0,0,0,0.25);
-            background:linear-gradient(135deg,var(--blue),var(--accent));
-            display:flex; align-items:center; justify-content:center;
-            font-size:2.4rem; font-weight:800; color:#fff;
-            flex-shrink:0;
-        }
-        .card-profile {
-            background:#fff; border-radius:16px;
-            border:1px solid #e2e8f0;
-            box-shadow:0 4px 20px rgba(0,0,0,.04);
-        }
         .section-badge {
-            display:inline-flex; align-items:center; gap:.4rem;
-            padding:.3rem .75rem; border-radius:8px;
-            font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            padding: 0.3rem 0.75rem; border-radius: 8px;
+            font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
         }
     </style>
 </head>
-<body>
+<body class="theme-resident">
 
-<!-- Navbar -->
-<nav class="cust-nav">
+<!-- Unified Top Navigation (Resident Blue Theme) -->
+<nav class="portal-nav">
     <div class="container-fluid px-4">
         <div class="d-flex align-items-center justify-content-between">
-            <a href="../index.php" class="brand">⚡ <span>Balangoda</span> Utility Portal</a>
+            <a href="dashboard.php" class="brand">
+                <span class="brand-badge">⚡</span>
+                <span>Balangoda</span> Resident Portal
+            </a>
             <div class="d-flex align-items-center gap-2">
-                <a href="dashboard.php" class="nav-btn"><i class="bi bi-speedometer2 me-1"></i>Dashboard</a>
-                <a href="../index.php" class="nav-btn"><i class="bi bi-house me-1"></i>Public Site</a>
-                <a href="logout.php" class="nav-btn danger"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
+                <a href="dashboard.php" class="nav-btn">
+                    <i class="bi bi-speedometer2"></i>
+                    <span class="d-none d-sm-inline">Dashboard</span>
+                </a>
+                <a href="../index.php" class="nav-btn">
+                    <i class="bi bi-house"></i>
+                    <span class="d-none d-sm-inline">Public Site</span>
+                </a>
+                <a href="logout.php" class="nav-btn danger">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span class="d-none d-sm-inline">Logout</span>
+                </a>
             </div>
         </div>
     </div>
 </nav>
 
-<!-- Hero Strip -->
-<div class="hero-strip">
+<!-- Unified Hero Strip -->
+<div class="portal-hero">
     <div class="container px-4">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
             <div class="d-flex align-items-center gap-3">
                 <?php if (!empty($cdata['profile_pic']) && file_exists('../' . $cdata['profile_pic'])): ?>
-                    <img src="../<?= htmlspecialchars($cdata['profile_pic']) ?>" alt="Avatar" class="avatar-box">
+                    <img src="../<?= htmlspecialchars($cdata['profile_pic']) ?>" alt="Avatar" class="avatar-circle-img" style="width:74px; height:74px;">
                 <?php else: ?>
-                    <div class="avatar-box"><?= mb_strtoupper(mb_substr($cdata['full_name'] ?? 'R', 0, 1)) ?></div>
+                    <div class="avatar-circle" style="width:74px; height:74px; font-size:1.9rem;"><?= mb_strtoupper(mb_substr($cdata['full_name'] ?? 'R', 0, 1)) ?></div>
                 <?php endif; ?>
                 <div>
-                    <div class="d-flex align-items-center gap-2 mb-1">
+                    <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
                         <h2 class="fw-bold mb-0 text-white"><?= htmlspecialchars($cdata['full_name']) ?></h2>
                         <?php if ($cdata['email_verified']): ?>
-                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill" style="font-size:0.75rem;">
+                            <span class="role-pill bg-success-subtle text-success border border-success-subtle">
                                 <i class="bi bi-patch-check-fill me-1"></i>Verified Resident
                             </span>
                         <?php endif; ?>
@@ -228,7 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 </div>
             </div>
             <div>
-                <a href="dashboard.php" class="btn btn-outline-light btn-sm px-3 rounded-3 shadow-sm">
+                <a href="dashboard.php" class="btn-hero-outline">
                     <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
                 </a>
             </div>
@@ -248,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <div class="row g-4">
         <!-- Main Form Column: Profile, Residence & Meters -->
         <div class="col-lg-8">
-            <div class="card-profile p-4 mb-4">
+            <div class="portal-card p-4 mb-4">
                 <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
                     <div>
                         <h5 class="fw-bold mb-1 text-dark">Profile &amp; Residence Information</h5>
@@ -270,7 +244,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                 <?php if (!empty($cdata['profile_pic']) && file_exists('../' . $cdata['profile_pic'])): ?>
                                     <img id="profileAvatarPreview" src="../<?= htmlspecialchars($cdata['profile_pic']) ?>" alt="Avatar" class="rounded-circle border border-2 border-primary shadow-sm" style="width:68px; height:68px; object-fit:cover;">
                                 <?php else: ?>
-                                    <div id="profileAvatarFallback" class="avatar-box shadow-sm" style="width:68px; height:68px; font-size:1.8rem;">
+                                    <div id="profileAvatarFallback" class="avatar-circle shadow-sm" style="width:68px; height:68px; font-size:1.8rem;">
                                         <?= mb_strtoupper(mb_substr($cdata['full_name'] ?? 'R', 0, 1)) ?>
                                     </div>
                                     <img id="profileAvatarPreview" src="" alt="Avatar" class="rounded-circle border border-2 border-primary shadow-sm d-none" style="width:68px; height:68px; object-fit:cover;">
@@ -350,8 +324,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </div>
 
                     <div class="d-flex justify-content-end gap-2">
-                        <a href="dashboard.php" class="btn btn-outline-secondary px-3">Cancel</a>
-                        <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm">
+                        <a href="dashboard.php" class="portal-btn-outline">Cancel</a>
+                        <button type="submit" class="portal-btn-primary">
                             <i class="bi bi-check2-circle me-1"></i>Save Profile Changes
                         </button>
                     </div>
@@ -362,7 +336,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <!-- Side Column: Password / Security & Quick Info -->
         <div class="col-lg-4">
             <!-- Change Password Card -->
-            <div class="card-profile p-4 mb-4">
+            <div class="portal-card p-4 mb-4">
                 <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
                     <i class="bi bi-shield-lock-fill text-warning fs-5"></i>
                     <div>
@@ -392,7 +366,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             </div>
 
             <!-- Residence & Hotlines summary -->
-            <div class="card-profile p-4">
+            <div class="portal-card p-4">
                 <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-dark">
                     <i class="bi bi-info-circle text-primary"></i> Need Help?
                 </h6>

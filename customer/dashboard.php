@@ -122,30 +122,36 @@ $total_complaints  = count($complaints);
 $resolved          = count(array_filter($complaints, fn($c) => stripos($c['status'], 'resolve') !== false));
 $pending           = count(array_filter($complaints, fn($c) => stripos($c['status'], 'pending') !== false));
 
-function time_ago($ts) {
-    $diff = time() - strtotime($ts);
-    if ($diff < 60)    return 'just now';
-    if ($diff < 3600)  return (int)($diff/60)  . 'm ago';
-    if ($diff < 86400) return (int)($diff/3600) . 'h ago';
-    return date('M d, Y', strtotime($ts));
+if (!function_exists('time_ago')) {
+    function time_ago($ts) {
+        $diff = time() - strtotime($ts);
+        if ($diff < 60)    return 'just now';
+        if ($diff < 3600)  return (int)($diff/60)  . 'm ago';
+        if ($diff < 86400) return (int)($diff/3600) . 'h ago';
+        return date('M d, Y', strtotime($ts));
+    }
 }
 
-function status_class($s) {
-    $s = strtolower($s);
-    if (str_contains($s, 'resolve'))  return 'bg-success';
-    if (str_contains($s, 'progress')) return 'bg-info text-dark';
-    if (str_contains($s, 'review'))   return 'bg-warning text-dark';
-    return 'bg-secondary';
+if (!function_exists('status_class')) {
+    function status_class($s) {
+        $s = strtolower($s);
+        if (str_contains($s, 'resolve'))  return 'bg-success';
+        if (str_contains($s, 'progress')) return 'bg-info text-dark';
+        if (str_contains($s, 'review'))   return 'bg-warning text-dark';
+        return 'bg-secondary';
+    }
 }
 
-function utility_icon($type) {
-    $t = strtolower($type);
-    if (str_contains($t, 'power') || str_contains($t, 'electric')) return 'bi-lightning-charge-fill';
-    if (str_contains($t, 'water')) return 'bi-droplet-fill';
-    if (str_contains($t, 'road') || str_contains($t, 'transport')) return 'bi-cone-striped';
-    if (str_contains($t, 'gas')) return 'bi-fire';
-    if (str_contains($t, 'drain') || str_contains($t, 'waste') || str_contains($t, 'sewer')) return 'bi-recycle';
-    return 'bi-exclamation-triangle-fill';
+if (!function_exists('utility_icon')) {
+    function utility_icon($type) {
+        $t = strtolower($type);
+        if (str_contains($t, 'power') || str_contains($t, 'electric')) return 'bi-lightning-charge-fill';
+        if (str_contains($t, 'water')) return 'bi-droplet-fill';
+        if (str_contains($t, 'road') || str_contains($t, 'transport')) return 'bi-cone-striped';
+        if (str_contains($t, 'gas')) return 'bi-fire';
+        if (str_contains($t, 'drain') || str_contains($t, 'waste') || str_contains($t, 'sewer')) return 'bi-recycle';
+        return 'bi-exclamation-triangle-fill';
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -153,116 +159,18 @@ function utility_icon($type) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Portal — Balangoda Utility System</title>
+    <title>Resident Portal — Balangoda Utility System</title>
     <link rel="manifest" href="../manifest.json">
-    <meta name="theme-color" content="#0d6efd">
+    <meta name="theme-color" content="#2563eb">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="../css/style.css">
     <style>
-        :root { --navy:#0f172a; --navy2:#1e293b; --blue:#3b82f6; --cyan:#38bdf8; --accent:#6366f1; }
-        body { font-family:'Outfit',system-ui,sans-serif; background:#f1f5f9; color:#1e293b; }
-
-        /* Navbar */
-        .cust-nav {
-            background:linear-gradient(135deg, var(--navy) 0%, #1a1040 100%);
-            padding:.75rem 0; box-shadow:0 4px 20px rgba(0,0,0,.3);
-        }
-        .cust-nav .brand { color:#f8fafc; font-size:1.1rem; font-weight:800; text-decoration:none; }
-        .cust-nav .brand span { color:var(--cyan); }
-        .cust-nav .nav-btn {
-            background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14);
-            border-radius:8px; color:#f1f5f9; padding:.38rem .85rem; font-size:.83rem;
-            text-decoration:none; transition:background .15s;
-        }
-        .cust-nav .nav-btn:hover { background:rgba(255,255,255,.16); color:#fff; }
-        .cust-nav .nav-btn.danger { border-color:rgba(239,68,68,.4); color:#fca5a5; }
-        .cust-nav .nav-btn.danger:hover { background:rgba(239,68,68,.15); }
-
-        /* Hero strip */
-        .hero-strip {
-            background:linear-gradient(135deg, #1a1040 0%, var(--navy2) 100%);
-            color:#f8fafc; padding:2rem 0 1.8rem;
-            border-bottom:1px solid rgba(255,255,255,.06);
-        }
-        .avatar-circle {
-            width:56px; height:56px; border-radius:50%;
-            background:linear-gradient(135deg,var(--blue),var(--accent));
-            display:flex; align-items:center; justify-content:center;
-            font-size:1.4rem; font-weight:800; color:#fff;
-            flex-shrink:0; box-shadow:0 4px 12px rgba(59,130,246,0.35);
-        }
-        .avatar-circle-img {
-            width:56px; height:56px; border-radius:50%;
-            object-fit:cover; border:2px solid rgba(255,255,255,0.85);
-            box-shadow:0 4px 12px rgba(59,130,246,0.35);
-            flex-shrink:0;
-        }
-        .nav-avatar-mini {
-            width:22px; height:22px; border-radius:50%;
-            object-fit:cover; vertical-align:middle; margin-right:4px;
-        }
-        .btn-update-account {
-            background:rgba(255,255,255,.12); color:#ffffff; font-weight:600;
-            border:1px solid rgba(255,255,255,.22); padding:0.65rem 1.15rem;
-            border-radius:10px; backdrop-filter:blur(8px);
-            transition:all .2s ease; text-decoration:none;
-            display:inline-flex; align-items:center; gap:0.5rem;
-            font-size:0.92rem; cursor:pointer;
-        }
-        .btn-update-account:hover {
-            background:rgba(255,255,255,.22); color:#38bdf8; border-color:#38bdf8;
-            transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,0.2);
-        }
-        .hero-strip h2 { font-size:1.35rem; font-weight:800; margin:0; }
-        .hero-strip p  { color:#94a3b8; font-size:.84rem; margin:0; }
-
-        /* Primary Report Issue Button */
-        .btn-report-single {
-            background: #f59e0b;
-            color: #0f172a;
-            font-weight: 700;
-            border: none;
-            padding: 0.65rem 1.25rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.92rem;
-        }
-        .btn-report-single:hover {
-            background: #d97706;
-            color: #ffffff;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
-        }
-
-        /* Stat cards */
-        .stat-card {
-            background:#fff; border-radius:14px; padding:1.1rem 1.3rem;
-            box-shadow:0 2px 10px rgba(0,0,0,.05); border:1px solid #e2e8f0;
-            transition:transform .2s;
-        }
-        .stat-card:hover { transform:translateY(-2px); }
-        .stat-card .icon { font-size:1.75rem; }
-        .stat-card .num  { font-size:1.85rem; font-weight:800; color:#0f172a; line-height:1.1; }
-        .stat-card .lbl  { color:#64748b; font-size:.8rem; margin-top:3px; }
-
-        /* Notification badge */
-        .notif-badge { background:#ef4444; color:#fff; border-radius:12px; font-size:.7rem; font-weight:700; padding:1px 6px; }
-
         /* HIGHLIGHTED OUTAGE CARDS */
         .live-pulse-indicator {
-            width: 12px;
-            height: 12px;
-            background-color: #ef4444;
-            border-radius: 50%;
-            display: inline-block;
-            box-shadow: 0 0 0 rgba(239, 68, 68, 0.6);
+            width: 12px; height: 12px; background-color: #ef4444;
+            border-radius: 50%; display: inline-block;
             animation: live-pulse 1.8s infinite;
         }
         @keyframes live-pulse {
@@ -271,112 +179,75 @@ function utility_icon($type) {
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
         .pulse-dot {
-            width: 7px;
-            height: 7px;
-            background-color: #ffffff;
-            border-radius: 50%;
-            display: inline-block;
+            width: 7px; height: 7px; background-color: #ffffff;
+            border-radius: 50%; display: inline-block;
             animation: live-pulse 1.2s infinite;
         }
-
         .highlight-outage-card {
-            background: #ffffff;
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
-            border-left: 6px solid var(--accent-color, #dc3545) !important;
+            background: #ffffff; border-radius: 16px;
+            border: 1px solid #e2e8f0; border-left: 6px solid var(--accent-color, #dc3545) !important;
             box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             overflow: hidden;
         }
         .highlight-outage-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.09);
+            transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.09);
         }
         .highlight-outage-card.is-ongoing {
-            border-top: 1px solid rgba(239, 68, 68, 0.3);
-            border-right: 1px solid rgba(239, 68, 68, 0.2);
+            border-top: 1px solid rgba(239, 68, 68, 0.3); border-right: 1px solid rgba(239, 68, 68, 0.2);
             border-bottom: 1px solid rgba(239, 68, 68, 0.2);
             background: linear-gradient(180deg, #fffafa 0%, #ffffff 100%);
             box-shadow: 0 4px 22px rgba(239, 68, 68, 0.12);
         }
-        .highlight-card-header {
-            padding: 1rem 1.25rem 0.65rem;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .highlight-card-body {
-            padding: 1.1rem 1.25rem;
-        }
-        .highlight-card-footer {
-            padding: 0.85rem 1.25rem;
-            background: #f8fafc;
-            border-top: 1px solid #e2e8f0;
-        }
+        .highlight-card-header { padding: 1rem 1.25rem 0.65rem; border-bottom: 1px solid #f1f5f9; }
+        .highlight-card-body { padding: 1.1rem 1.25rem; }
+        .highlight-card-footer { padding: 0.85rem 1.25rem; background: #f8fafc; border-top: 1px solid #e2e8f0; }
         .utility-icon-pill {
-            width: 34px;
-            height: 34px;
-            border-radius: 9px;
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.05rem;
-            flex-shrink: 0;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            width: 34px; height: 34px; border-radius: 9px;
+            color: #ffffff; display: flex; align-items: center; justify-content: center;
+            font-size: 1.05rem; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.15);
         }
         .badge-ongoing {
-            background: #dc2626;
-            color: #ffffff;
-            font-size: 0.74rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            padding: 0.35rem 0.65rem;
-            border-radius: 8px;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
+            background: #dc2626; color: #ffffff; font-size: 0.74rem; font-weight: 700;
+            letter-spacing: 0.04em; padding: 0.35rem 0.65rem; border-radius: 8px;
+            display: inline-flex; align-items: center; gap: 0.4rem;
         }
-
-        /* Table styles */
-        .complaints-table th { background:#f8fafc; color:#475569; font-size:.77rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
-        .complaints-table td { vertical-align:middle; font-size:.88rem; }
-
-        /* Timeline notification */
-        .notif-item { border-left:3px solid var(--cyan); padding:0.75rem 1rem; margin-bottom:.65rem; background:#f8fafc; border-radius:0 10px 10px 0; }
-        .notif-item.read { border-left-color:#cbd5e1; opacity:.75; }
-
-        /* Tab nav */
-        .cust-tabs { border-bottom:2px solid #e2e8f0; margin-bottom:1.5rem; }
-        .cust-tabs .nav-link { color:#64748b; font-weight:600; padding:.65rem 1.2rem; border:none; border-radius:0; border-bottom:2px solid transparent; margin-bottom:-2px; background:none; }
-        .cust-tabs .nav-link.active { color:var(--blue); border-bottom-color:var(--blue); font-weight:700; }
-        .cust-tabs .nav-link:hover  { color:var(--navy); }
     </style>
 </head>
-<body>
+<body class="theme-resident">
 
-<!-- Navbar -->
-<nav class="cust-nav">
+<!-- Unified Top Navigation (Resident Blue Theme) -->
+<nav class="portal-nav">
     <div class="container-fluid px-4">
         <div class="d-flex align-items-center justify-content-between">
-            <a href="../index.php" class="brand">⚡ <span>Balangoda</span> Utility Portal</a>
+            <a href="dashboard.php" class="brand">
+                <span class="brand-badge">⚡</span>
+                <span>Balangoda</span> Resident Portal
+            </a>
             <div class="d-flex align-items-center gap-2">
-                <a href="../index.php" class="nav-btn"><i class="bi bi-house me-1"></i>Home</a>
-                <span class="text-white-50 small d-none d-md-inline">|</span>
-                <a href="profile.php" class="nav-btn d-inline-flex align-items-center">
+                <a href="../index.php" class="nav-btn">
+                    <i class="bi bi-house"></i>
+                    <span class="d-none d-sm-inline">Public Site</span>
+                </a>
+                <a href="profile.php" class="nav-btn">
                     <?php if (!empty($cdata['profile_pic']) && file_exists('../' . $cdata['profile_pic'])): ?>
                         <img src="../<?= htmlspecialchars($cdata['profile_pic']) ?>" alt="Avatar" class="nav-avatar-mini">
                     <?php else: ?>
-                        <i class="bi bi-person-circle me-1"></i>
+                        <i class="bi bi-person-circle"></i>
                     <?php endif; ?>
-                    My Profile
+                    <span class="d-none d-md-inline">My Profile</span>
                 </a>
-                <a href="logout.php" class="nav-btn danger"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
+                <a href="logout.php" class="nav-btn danger">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span class="d-none d-sm-inline">Logout</span>
+                </a>
             </div>
         </div>
     </div>
 </nav>
 
-<!-- Hero Strip with Profile / Residence Actions -->
-<div class="hero-strip">
+<!-- Unified Hero Strip (Resident Blue Accent) -->
+<div class="portal-hero">
     <div class="container-fluid px-4">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
             <div class="d-flex align-items-center gap-3">
@@ -386,16 +257,27 @@ function utility_icon($type) {
                     <div class="avatar-circle"><?= mb_strtoupper(mb_substr($cdata['full_name'] ?? 'R', 0, 1)) ?></div>
                 <?php endif; ?>
                 <div>
-                    <h2><?= $customer_name ?></h2>
-                    <p><?= $customer_email ?> &nbsp;·&nbsp; <?= $customer_phone ?></p>
+                    <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                        <h2><?= $customer_name ?></h2>
+                        <?php if ($cdata['email_verified']): ?>
+                            <span class="role-pill bg-success-subtle text-success border border-success-subtle">
+                                <i class="bi bi-patch-check-fill me-1"></i>Verified Resident
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                    <p>
+                        <i class="bi bi-envelope me-1"></i><?= $customer_email ?>
+                        &nbsp;·&nbsp;
+                        <i class="bi bi-telephone me-1"></i><?= $customer_phone ?>
+                    </p>
                 </div>
             </div>
             <div class="d-flex align-items-center gap-2 flex-wrap">
-                <button type="button" class="btn-update-account" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                <button type="button" class="btn-hero-outline" data-bs-toggle="modal" data-bs-target="#editProfileModal">
                     <i class="bi bi-pencil-square"></i>
                     <span>Edit Profile / Residence</span>
                 </button>
-                <a href="../submit_complaint.php" class="btn-report-single">
+                <a href="../submit_complaint.php" class="btn-hero-action" style="background:#f59e0b; box-shadow:0 4px 14px rgba(245,158,11,0.35); border-color:#f59e0b;">
                     <i class="bi bi-exclamation-triangle-fill"></i>
                     <span>Report an Issue</span>
                 </a>

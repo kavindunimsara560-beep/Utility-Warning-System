@@ -151,93 +151,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Profile — Balangoda Utility System</title>
+    <title>Administrator Profile — Balangoda Utility System</title>
     <link rel="manifest" href="../manifest.json">
-    <meta name="theme-color" content="#0d6efd">
+    <meta name="theme-color" content="#d97706">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="../css/style.css">
-    <style>
-        body { background-color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
-        .admin-hero {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #fff;
-            padding: 2.2rem 0;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-            margin-bottom: 2rem;
-        }
-        .admin-avatar {
-            width: 88px;
-            height: 88px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid rgba(255,255,255,0.85);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-            background: linear-gradient(135deg, #3b82f6, #6366f1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.2rem;
-            font-weight: 700;
-            color: #fff;
-            flex-shrink: 0;
-        }
-        .admin-card {
-            background: #fff;
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-        .nav-avatar-mini {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            object-fit: cover;
-            vertical-align: middle;
-            margin-right: 4px;
-        }
-    </style>
 </head>
-<body>
+<body class="theme-admin">
 
-    <!-- Admin Navbar -->
-    <nav class="navbar navbar-dark bg-dark shadow-sm">
+    <!-- Unified Top Navigation (Admin Gold/Amber Theme) -->
+    <nav class="portal-nav">
         <div class="container-fluid px-4">
-            <div class="d-flex align-items-center gap-3">
-                <span class="navbar-brand mb-0 h1 fw-bold">⚡ Balangoda Utility Admin</span>
-                <a href="../index.php" target="_blank" class="btn btn-outline-info btn-sm">View Public Site ↗</a>
-            </div>
-            <div class="d-flex align-items-center gap-3">
-                <a href="dashboard.php" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-speedometer2 me-1"></i>Dashboard
+            <div class="d-flex align-items-center justify-content-between">
+                <a href="dashboard.php" class="brand">
+                    <span class="brand-badge">⚡</span>
+                    <span>Balangoda</span> Admin Console
                 </a>
-                <span class="text-white-50 small">
-                    <?php if (!empty($admin['profile_pic']) && file_exists('../' . $admin['profile_pic'])): ?>
-                        <img src="../<?= htmlspecialchars($admin['profile_pic']) ?>" alt="Avatar" class="nav-avatar-mini">
-                    <?php else: ?>
-                        <i class="bi bi-person-circle me-1"></i>
-                    <?php endif; ?>
-                    <strong class="text-white"><?= htmlspecialchars($admin['username']) ?></strong>
-                </span>
-                <a href="logout.php" class="btn btn-outline-danger btn-sm">Logout</a>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="dashboard.php" class="nav-btn">
+                        <i class="bi bi-speedometer2"></i>
+                        <span class="d-none d-sm-inline">Dashboard</span>
+                    </a>
+                    <a href="../index.php" target="_blank" class="nav-btn">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                        <span class="d-none d-sm-inline">Public Site</span>
+                    </a>
+                    <a href="logout.php" class="nav-btn danger">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span class="d-none d-sm-inline">Logout</span>
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
 
-    <!-- Admin Hero Header -->
-    <div class="admin-hero">
+    <!-- Unified Hero Header -->
+    <div class="portal-hero">
         <div class="container px-4">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
                 <div class="d-flex align-items-center gap-3">
                     <?php if (!empty($admin['profile_pic']) && file_exists('../' . $admin['profile_pic'])): ?>
-                        <img src="../<?= htmlspecialchars($admin['profile_pic']) ?>" alt="Admin Avatar" class="admin-avatar">
+                        <img src="../<?= htmlspecialchars($admin['profile_pic']) ?>" alt="Admin Avatar" class="avatar-circle-img" style="width:74px; height:74px;">
                     <?php else: ?>
-                        <div class="admin-avatar"><?= mb_strtoupper(mb_substr($admin['username'] ?? 'A', 0, 1)) ?></div>
+                        <div class="avatar-circle" style="width:74px; height:74px; font-size:1.9rem;"><?= mb_strtoupper(mb_substr($admin['username'] ?? 'A', 0, 1)) ?></div>
                     <?php endif; ?>
                     <div>
-                        <div class="d-flex align-items-center gap-2 mb-1">
-                            <h3 class="fw-bold mb-0 text-white"><?= htmlspecialchars(!empty($admin['full_name']) ? $admin['full_name'] : $admin['username']) ?></h3>
-                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 rounded-pill" style="font-size:0.75rem;">
+                        <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                            <h2 class="fw-bold mb-0 text-white"><?= htmlspecialchars(!empty($admin['full_name']) ? $admin['full_name'] : $admin['username']) ?></h2>
+                            <span class="role-pill bg-warning-subtle text-warning border border-warning-subtle">
                                 <i class="bi bi-shield-fill-check me-1"></i>Municipal Administrator
                             </span>
                         </div>
@@ -251,8 +215,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </div>
                 </div>
                 <div>
-                    <a href="dashboard.php" class="btn btn-outline-light btn-sm px-3">
-                        <i class="bi bi-arrow-left me-1"></i>Back to Outages &amp; Complaints
+                    <a href="dashboard.php" class="btn-hero-outline">
+                        <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
                     </a>
                 </div>
             </div>
@@ -260,10 +224,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     </div>
 
     <!-- Main Container -->
-    <div class="container px-4 mb-5" style="max-width: 960px;">
+    <div class="container px-4 my-4" style="max-width: 980px;">
 
         <?php if ($flash): ?>
-        <div class="alert alert-<?= $flash['type'] ?> alert-dismissible fade show shadow-sm mb-4" role="alert">
+        <div class="alert alert-<?= $flash['type'] ?> alert-dismissible fade show shadow-sm mb-4" role="alert" style="border-radius:12px;">
             <?= $flash['text'] ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
@@ -272,13 +236,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <div class="row g-4">
             <!-- Left Column: Administrator Profile Info -->
             <div class="col-lg-8">
-                <div class="admin-card p-4">
+                <div class="portal-card p-4">
                     <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
                         <div>
                             <h5 class="fw-bold text-dark mb-1">Administrator Details</h5>
                             <small class="text-muted">Manage your administrative credentials and official contact information.</small>
                         </div>
-                        <span class="badge bg-dark-subtle text-dark border px-2 py-1">Staff Record</span>
+                        <span class="role-pill bg-warning-subtle text-warning border border-warning-subtle">Staff Record</span>
                     </div>
 
                     <form method="POST" action="profile.php" enctype="multipart/form-data">
@@ -362,8 +326,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         </div>
 
                         <div class="d-flex justify-content-end gap-2">
-                            <a href="dashboard.php" class="btn btn-outline-secondary px-3">Cancel</a>
-                            <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm">
+                            <a href="dashboard.php" class="portal-btn-outline">Cancel</a>
+                            <button type="submit" class="portal-btn-primary">
                                 <i class="bi bi-check2-circle me-1"></i>Save Profile
                             </button>
                         </div>
@@ -373,7 +337,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
             <!-- Right Column: Password & Security -->
             <div class="col-lg-4">
-                <div class="admin-card p-4 mb-4">
+                <div class="portal-card p-4 mb-4">
                     <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
                         <i class="bi bi-key-fill text-warning fs-5"></i>
                         <div>
@@ -396,15 +360,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             <label class="form-label fw-semibold text-dark small">Confirm New Password</label>
                             <input type="password" name="confirm_password" class="form-control form-control-sm" required minlength="6">
                         </div>
-                        <button type="submit" class="btn btn-outline-dark btn-sm w-100 fw-bold">
+                        <button type="submit" class="portal-btn-primary w-100 fw-bold" style="font-size:0.88rem; padding:0.55rem;">
                             <i class="bi bi-shield-lock me-1"></i>Update Password
                         </button>
                     </form>
                 </div>
 
-                <div class="admin-card p-4">
+                <div class="portal-card p-4">
                     <h6 class="fw-bold mb-2 text-dark d-flex align-items-center gap-2">
-                        <i class="bi bi-shield-shaded text-primary"></i> Administrative Privileges
+                        <i class="bi bi-shield-shaded text-warning"></i> Administrative Privileges
                     </h6>
                     <p class="text-secondary small mb-3">
                         As a verified municipal administrator, your account is authorized to broadcast outage bulletins and manage resident complaints across Balangoda.
