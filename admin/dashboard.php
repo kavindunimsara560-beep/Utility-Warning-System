@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 session_start();
 // Redirect to login if the admin is not authenticated
 if (!isset($_SESSION['admin_id'])) {
@@ -145,7 +145,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
     exit();
 }
 
-// ── Metrics & Data Queries for Unified Stat Cards & Tabs ──────────────────
+// â”€â”€ Metrics & Data Queries for Unified Stat Cards & Tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 $active_outages_res = $conn->query("SELECT COUNT(*) AS cnt FROM warnings WHERE end_time >= NOW()");
 $active_outages_count = $active_outages_res ? (int)$active_outages_res->fetch_assoc()['cnt'] : 0;
 
@@ -213,607 +213,612 @@ if (!function_exists('utility_icon')) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administrator Console — Balangoda Utility System</title>
+    <title>Administrator Console â€” Balangoda Utility System</title>
     <link rel="manifest" href="../manifest.json">
-    <meta name="theme-color" content="#d97706">
+    <meta name="theme-color" content="#2563eb">
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <!-- Bootstrap CSS + Bootstrap Icons (for existing modal/toast logic) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="../css/style.css">
-    <style>
-        /* Notification bell dropdown in navbar */
-        .notif-bell-btn {
-            position: relative;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            border-radius: 10px;
-            color: #fff;
-            padding: 0.42rem 0.75rem;
-            transition: background 0.18s;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-        }
-        .notif-bell-btn:hover { background: rgba(255, 255, 255, 0.18); }
-        .notif-badge {
-            position: absolute;
-            top: -5px; right: -5px;
-            background: #ef4444; color: #fff;
-            font-size: 0.65rem; font-weight: 700;
-            border-radius: 50%; min-width: 18px; height: 18px;
-            display: flex; align-items: center; justify-content: center;
-            padding: 0 3px; border: 2px solid #0f172a;
-        }
-        .notif-dropdown {
-            min-width: 330px; max-height: 400px;
-            overflow-y: auto; border-radius: 14px;
-            border: 1px solid rgba(0, 0, 0, 0.12);
-            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2);
-            padding: 0;
-        }
-    </style>
+
+    <link rel="stylesheet" href="../css/dashboard.css">
 </head>
-<body class="theme-admin">
+<body>
 
-    <!-- Unified Top Navigation (Admin Theme) -->
-    <nav class="portal-nav">
-        <div class="container-fluid px-4">
-            <div class="d-flex align-items-center justify-content-between">
-                <a href="dashboard.php" class="brand">
-                    <span class="brand-badge">⚡</span>
-                    <span>Balangoda</span> Admin Console
+<!-- ============================================================
+     TOP NAVIGATION
+============================================================ -->
+<nav class="rd-nav" role="navigation" aria-label="Admin Portal Navigation">
+    <div class="nav-inner">
+        <!-- Brand -->
+        <a href="dashboard.php" class="brand" aria-label="Balangoda Admin Console Home">
+            <div class="brand-icon" aria-hidden="true" style="background:var(--text);">
+                <i data-lucide="shield"></i>
+            </div>
+            <span class="brand-text d-none d-sm-inline">Balangoda <span>Admin Console</span></span>
+        </a>
+
+        <!-- Nav Links -->
+        <ul class="nav-links" role="list">
+            <li>
+                <a href="../index.php" target="_blank" class="nav-link-item" aria-label="Go to Public Site">
+                    <i data-lucide="external-link" aria-hidden="true"></i>
+                    <span class="nav-link-text d-none d-md-inline">Public Site</span>
                 </a>
-                <div class="d-flex align-items-center gap-2">
-                    <!-- View Public Site -->
-                    <a href="../index.php" target="_blank" class="nav-btn">
-                        <i class="bi bi-box-arrow-up-right"></i>
-                        <span class="d-none d-sm-inline">Public Site</span>
-                    </a>
-
-                    <!-- Notification Bell Dropdown -->
-                    <div class="dropdown" id="notif-dropdown-container">
-                        <button class="notif-bell-btn" id="notifBellBtn" data-bs-toggle="dropdown" aria-expanded="false" title="System Notifications">
-                            <i class="bi bi-bell-fill"></i>
-                            <?php if ($admin_notif_count > 0): ?>
-                                <span class="notif-badge" id="notif-badge"><?= $admin_notif_count ?></span>
-                            <?php endif; ?>
-                        </button>
-                        <div class="dropdown-menu dropdown-menu-end notif-dropdown" aria-labelledby="notifBellBtn">
-                            <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light">
-                                <span class="fw-bold small text-dark">Administrative Alerts</span>
-                                <button id="mark-all-read-btn" class="btn btn-link btn-sm p-0 text-warning text-decoration-none small fw-bold">Mark all read</button>
-                            </div>
-                            <div id="notif-list">
-                                <?php if (empty($admin_notifs)): ?>
-                                    <div class="text-center text-muted py-4 small"><i class="bi bi-bell-slash fs-4 d-block mb-2"></i>No notifications yet.</div>
-                                <?php else: ?>
-                                    <?php foreach ($admin_notifs as $an): ?>
-                                        <div class="p-3 border-bottom <?= $an['is_read'] ? 'opacity-75' : 'bg-warning-subtle' ?>" style="font-size:0.83rem;">
-                                            <div class="text-dark"><?= htmlspecialchars($an['message']) ?></div>
-                                            <small class="text-muted"><?= time_ago($an['created_at']) ?></small>
-                                        </div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Push permission button if available -->
-                    <button id="enable-notif-btn" class="nav-btn" title="Enable browser notifications" onclick="requestNotifPermission()" style="display:none;">
-                        <i class="bi bi-bell-slash text-warning"></i>
-                    </button>
-
-                    <!-- My Profile Link with Mini Avatar -->
-                    <a href="profile.php" class="nav-btn">
-                        <?php if (!empty($admin_profile_pic) && file_exists('../' . $admin_profile_pic)): ?>
-                            <img src="../<?= htmlspecialchars($admin_profile_pic) ?>" alt="Avatar" class="nav-avatar-mini">
-                        <?php else: ?>
-                            <i class="bi bi-person-circle"></i>
-                        <?php endif; ?>
-                        <span class="d-none d-md-inline">My Profile</span>
-                    </a>
-
-                    <!-- Logout Button -->
-                    <a href="logout.php" class="nav-btn danger">
-                        <i class="bi bi-box-arrow-right"></i>
-                        <span class="d-none d-sm-inline">Logout</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Unified Hero Strip (Admin Gold/Amber Accent) -->
-    <div class="portal-hero">
-        <div class="container-fluid px-4">
-            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-                <div class="d-flex align-items-center gap-3">
+            </li>
+            <li>
+                <a href="edit.php" class="nav-link-item" aria-label="My Profile">
                     <?php if (!empty($admin_profile_pic) && file_exists('../' . $admin_profile_pic)): ?>
-                        <img src="../<?= htmlspecialchars($admin_profile_pic) ?>" alt="Avatar" class="avatar-circle-img">
+                        <img src="../<?= htmlspecialchars($admin_profile_pic) ?>" alt="" class="nav-avatar" aria-hidden="true">
                     <?php else: ?>
-                        <div class="avatar-circle"><?= mb_strtoupper(mb_substr($admin_display_name, 0, 1)) ?></div>
+                        <i data-lucide="user-cog" aria-hidden="true"></i>
                     <?php endif; ?>
-                    <div>
-                        <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                            <h2><?= htmlspecialchars($admin_display_name) ?></h2>
-                            <span class="role-pill bg-warning-subtle text-warning border border-warning-subtle">
-                                <i class="bi bi-shield-lock-fill me-1"></i>Municipal Administrator
-                            </span>
-                        </div>
-                        <p>
-                            <i class="bi bi-at"></i><?= htmlspecialchars($_SESSION['admin_username'] ?? 'admin') ?>
-                            &nbsp;·&nbsp;
-                            <i class="bi bi-envelope me-1"></i><?= htmlspecialchars($admin_info['email'] ?? 'admin@balangoda.gov.lk') ?>
-                            &nbsp;·&nbsp;
-                            Balangoda Urban Council
-                        </p>
+                    <span class="nav-link-text d-none d-md-inline">My Profile</span>
+                </a>
+            </li>
+            <li>
+                <a href="logout.php" class="nav-link-item danger" aria-label="Logout">
+                    <i data-lucide="log-out" aria-hidden="true"></i>
+                    <span class="nav-link-text d-none d-md-inline">Logout</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+<!-- ============================================================
+     PROFILE HERO
+============================================================ -->
+<div class="rd-hero">
+    <div class="hero-inner">
+        <div class="hero-left">
+            <!-- Avatar -->
+            <div class="avatar-wrap">
+                <?php if (!empty($admin_profile_pic) && file_exists('../' . $admin_profile_pic)): ?>
+                    <img src="../<?= htmlspecialchars($admin_profile_pic) ?>"
+                         alt="<?= htmlspecialchars($admin_display_name) ?>'s profile picture" class="avatar-img">
+                <?php else: ?>
+                    <div class="avatar-initials" aria-hidden="true" style="background: linear-gradient(135deg, var(--text), var(--text-secondary));">
+                        <?= mb_strtoupper(mb_substr($admin_display_name, 0, 1)) ?>
                     </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Info -->
+            <div class="hero-info">
+                <div class="hero-name-row">
+                    <h1><?= htmlspecialchars($admin_display_name) ?></h1>
+                    <span class="badge-admin-role" role="status">
+                        <i data-lucide="shield-check" aria-hidden="true"></i>
+                        Municipal Administrator
+                    </span>
                 </div>
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <button type="button" class="btn-hero-action" onclick="document.getElementById('postWarningSection').scrollIntoView({behavior:'smooth'})">
-                        <i class="bi bi-plus-circle-fill"></i>
-                        <span>Publish Outage Warning</span>
-                    </button>
-                    <a href="profile.php" class="btn-hero-outline">
-                        <i class="bi bi-person-gear"></i>
-                        <span>Edit Profile</span>
-                    </a>
+                <div class="hero-meta">
+                    <span>
+                        <i data-lucide="mail" aria-hidden="true"></i>
+                        <?= htmlspecialchars($admin_info['email'] ?? 'No email set') ?>
+                    </span>
+                    <span>
+                        <i data-lucide="building-2" aria-hidden="true"></i>
+                        Balangoda Urban Council
+                    </span>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Main Content Container -->
-    <div class="container-fluid px-4 py-4">
+<!-- ============================================================
+     FLASH MESSAGE
+============================================================ -->
+<?php if (!empty($message)): ?>
+<div class="rd-flash">
+    <div class="alert alert-<?= $message_type == 'danger' ? 'danger' : 'success' ?> alert-dismissible fade show shadow-sm"
+         role="alert" style="border-radius:12px; font-size:0.88rem; display:flex; align-items:center; gap:10px;">
+        <i data-lucide="<?= $message_type == 'danger' ? 'alert-triangle' : 'check-circle' ?>" style="width:18px;height:18px;"></i>
+        <div><?= htmlspecialchars($message) ?></div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+</div>
+<?php endif; ?>
 
-        <!-- Flash Notice Message -->
-        <?php if (!empty($message)): ?>
-            <div class="alert alert-<?= $message_type ?> alert-dismissible fade show shadow-sm mb-4" role="alert" style="border-radius:14px;">
-                <strong><?= $message_type === 'success' ? 'Success:' : 'Notice:' ?></strong> <?= htmlspecialchars($message) ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        <?php endif; ?>
+<!-- ============================================================
+     MAIN PAGE
+============================================================ -->
+<main class="rd-page" role="main">
 
-        <!-- Unified Top 4 Metric Stat Cards (Identical layout to Resident Dashboard) -->
-        <div class="row g-3 mb-4">
-            <div class="col-6 col-md-3">
-                <div class="stat-card">
-                    <div class="icon-wrap">📢</div>
-                    <div class="num <?= $active_outages_count > 0 ? 'text-danger' : 'text-success' ?>"><?= $active_outages_count ?></div>
-                    <div class="lbl">Active Outages</div>
-                </div>
+    <!-- â”€â”€ STATISTICS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+    <div class="stats-grid" role="region" aria-label="Dashboard statistics">
+
+        <!-- Active Outages -->
+        <div class="stat-card-new <?= $active_outages_count > 0 ? 'danger-active' : '' ?>"
+             role="article" aria-label="Active Outages: <?= $active_outages_count ?>">
+            <div class="stat-icon-box <?= $active_outages_count > 0 ? '' : 'slate' ?>" aria-hidden="true">
+                <i data-lucide="radio-tower"></i>
             </div>
-            <div class="col-6 col-md-3">
-                <div class="stat-card">
-                    <div class="icon-wrap">📋</div>
-                    <div class="num text-dark"><?= $total_complaints_count ?></div>
-                    <div class="lbl">Total Complaints</div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="stat-card">
-                    <div class="icon-wrap">⏳</div>
-                    <div class="num text-warning"><?= $pending_complaints_count ?></div>
-                    <div class="lbl">Pending Review</div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="stat-card">
-                    <div class="icon-wrap">🔔</div>
-                    <div class="num" style="color:#d97706;"><?= $admin_notif_count ?></div>
-                    <div class="lbl">Unread Alerts</div>
-                </div>
-            </div>
+            <div class="stat-number"><?= $active_outages_count ?></div>
+            <div class="stat-label">Active Outages</div>
         </div>
 
-        <!-- Portal 2-Column Content Row (Main col-8 + Side col-4) -->
-        <div class="row g-4">
+        <!-- Total Complaints -->
+        <div class="stat-card-new" role="article" aria-label="Total Complaints: <?= $total_complaints_count ?>">
+            <div class="stat-icon-box blue" aria-hidden="true">
+                <i data-lucide="clipboard-list"></i>
+            </div>
+            <div class="stat-number" style="color:var(--primary);"><?= $total_complaints_count ?></div>
+            <div class="stat-label">Total Complaints</div>
+        </div>
 
-            <!-- Main Column: Tabbed Outages, Complaints, and Notification Feeds -->
-            <div class="col-lg-8">
+        <!-- Pending Review -->
+        <div class="stat-card-new <?= $pending_complaints_count > 0 ? 'warning-active' : '' ?>" role="article" aria-label="Pending Review: <?= $pending_complaints_count ?>">
+            <div class="stat-icon-box <?= $pending_complaints_count > 0 ? '' : 'amber' ?>" aria-hidden="true">
+                <i data-lucide="clock-3"></i>
+            </div>
+            <div class="stat-number" style="<?= $pending_complaints_count == 0 ? 'color:var(--warning);' : '' ?>"><?= $pending_complaints_count ?></div>
+            <div class="stat-label">Pending Review</div>
+        </div>
 
-                <!-- Unified Tab Navigation -->
-                <ul class="nav portal-tabs" id="adminTabs">
-                    <li class="nav-item">
-                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-warnings">
-                            <i class="bi bi-broadcast-pin"></i> Outage Bulletins
-                            <?php if (count($all_warnings) > 0): ?>
-                                <span class="badge bg-secondary-subtle text-dark ms-1"><?= count($all_warnings) ?></span>
-                            <?php endif; ?>
+        <!-- Unread Alerts -->
+        <div class="stat-card-new <?= $admin_notif_count > 0 ? 'info-active' : '' ?>" role="article" aria-label="Unread Alerts: <?= $admin_notif_count ?>">
+            <div class="stat-icon-box <?= $admin_notif_count > 0 ? '' : 'purple' ?>" aria-hidden="true">
+                <i data-lucide="bell"></i>
+            </div>
+            <div class="stat-number" style="<?= $admin_notif_count == 0 ? 'color:var(--purple);' : '' ?>"><?= $admin_notif_count ?></div>
+            <div class="stat-label">Unread Alerts</div>
+        </div>
+
+    </div><!-- /stats-grid -->
+
+
+    <!-- â”€â”€ SERVICE STATUS BANNER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+    <?php if ($active_outages_count > 0): ?>
+        <?php
+        // Determine if any are ongoing (critical) vs scheduled (advisory)
+        $now = time();
+        $has_critical = false;
+        foreach ($all_warnings as $w) {
+            if (strtotime($w['start_time']) <= $now && strtotime($w['end_time']) > $now) {
+                $has_critical = true;
+                break;
+            }
+        }
+        ?>
+        <div class="service-status-banner <?= $has_critical ? 'has-critical' : 'has-outage' ?>"
+             role="alert" aria-live="polite">
+            <div class="status-icon-wrap <?= $has_critical ? 'red' : 'orange' ?>" aria-hidden="true">
+                <i data-lucide="alert-triangle"></i>
+            </div>
+            <div>
+                <h6 style="color:<?= $has_critical ? 'var(--danger)' : '#c2410c' ?>">
+                    <?= $has_critical ? 'ACTIVE OUTAGE BULLETIN BROADCASTING' : 'SCHEDULED INTERRUPTION BROADCASTING' ?>
+                </h6>
+                <p>
+                    <?= $active_outages_count ?> active outage notice<?= $active_outages_count > 1 ? 's' : '' ?> currently visible to residents.
+                </p>
+            </div>
+        </div>
+    <?php else: ?>
+        <!-- All Clear -->
+        <div class="service-status-banner all-clear" role="status" aria-live="polite">
+            <div class="status-icon-wrap green" aria-hidden="true">
+                <i data-lucide="shield-check"></i>
+            </div>
+            <div>
+                <h6 style="color:var(--success);">All Municipal Utility Services Running Routinely</h6>
+                <p>No active outage warnings are currently published to the public portal.</p>
+            </div>
+        </div>
+    <?php endif; ?>
+
+
+    <!-- â”€â”€ TWO-COLUMN LAYOUT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+    <div class="rd-two-col">
+
+        <!-- â”€â”€ LEFT: Main Content Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <div class="rd-main-col">
+
+            <!-- Tabs -->
+            <div class="rd-tabs" role="tablist" aria-label="Admin Dashboard sections">
+                <button class="rd-tab-btn active"
+                        id="tab-outages-btn"
+                        role="tab"
+                        aria-selected="true"
+                        aria-controls="panel-outages"
+                        onclick="switchTab('outages')">
+                    <i data-lucide="radio-tower" aria-hidden="true"></i>
+                    Outage Bulletins
+                    <?php if ($active_outages_count > 0): ?>
+                        <span class="rd-tab-badge" aria-label="<?= $active_outages_count ?> active outages">
+                            <?= $active_outages_count ?>
+                        </span>
+                    <?php endif; ?>
+                </button>
+                <button class="rd-tab-btn"
+                        id="tab-complaints-btn"
+                        role="tab"
+                        aria-selected="false"
+                        aria-controls="panel-complaints"
+                        onclick="switchTab('complaints')">
+                    <i data-lucide="message-square" aria-hidden="true"></i>
+                    Resident Complaints
+                    <?php if ($pending_complaints_count > 0): ?>
+                        <span class="rd-tab-badge" aria-label="<?= $pending_complaints_count ?> pending complaints">
+                            <?= $pending_complaints_count ?>
+                        </span>
+                    <?php endif; ?>
+                </button>
+                <button class="rd-tab-btn"
+                        id="tab-notifs-btn"
+                        role="tab"
+                        aria-selected="false"
+                        aria-controls="panel-notifs"
+                        onclick="switchTab('notifs')">
+                    <i data-lucide="bell-ring" aria-hidden="true"></i>
+                    Alerts &amp; Logs
+                    <?php if ($admin_notif_count > 0): ?>
+                        <span class="rd-tab-badge unread" aria-label="<?= $admin_notif_count ?> unread">
+                            <?= $admin_notif_count ?>
+                        </span>
+                    <?php endif; ?>
+                </button>
+            </div>
+
+            <!-- Outages Panel -->
+            <div id="panel-outages"
+                 class="rd-tab-panel active"
+                 role="tabpanel"
+                 aria-labelledby="tab-outages-btn">
+
+                <?php if (empty($all_warnings)): ?>
+                <!-- Empty State -->
+                <div class="rd-card">
+                    <div class="empty-state">
+                        <div class="empty-icon-wrap" aria-hidden="true">
+                            <i data-lucide="shield-check"></i>
+                        </div>
+                        <h6>No Active or Scheduled Outage Notices</h6>
+                        <p>There are currently no public utility interruptions affecting the Balangoda area.</p>
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('title').focus();" style="border-radius:var(--radius-md); font-weight:600; font-size:0.85rem; padding:0.6rem 1.2rem;">
+                            <i data-lucide="megaphone" style="width:16px;height:16px;margin-right:5px;vertical-align:middle;"></i> Publish Outage Warning
                         </button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-complaints">
-                            <i class="bi bi-chat-left-dots"></i> Resident Complaints
-                            <?php if ($total_complaints_count > 0): ?>
-                                <span class="badge bg-warning-subtle text-dark ms-1"><?= $total_complaints_count ?></span>
-                            <?php endif; ?>
-                        </button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-feed">
-                            <i class="bi bi-bell"></i> Alerts &amp; Logs
-                            <?php if ($admin_notif_count > 0): ?>
-                                <span class="badge bg-danger ms-1"><?= $admin_notif_count ?></span>
-                            <?php endif; ?>
-                        </button>
-                    </li>
-                </ul>
+                    </div>
+                </div>
 
-                <div class="tab-content">
+                <?php else: ?>
+                <!-- Outage Cards Grid -->
+                <div class="rd-card">
+                    <div class="outage-cards-grid" role="region" aria-label="Published Outage Warnings">
+                        <?php foreach ($all_warnings as $w): 
+                            $now = time();
+                            $s_ts = strtotime($w['start_time']);
+                            $e_ts = strtotime($w['end_time']);
+                            $is_ongoing = ($s_ts <= $now && $e_ts > $now);
+                            $is_past = ($e_ts < $now);
+                            $u_color = !empty($w['color_code']) ? htmlspecialchars($w['color_code']) : '#dc2626';
+                            $u_type = htmlspecialchars($w['utility_type']);
+                            
+                            $t = strtolower($w['utility_type']);
+                            $lu_icon = 'alert-circle';
+                            if (str_contains($t,'power')||str_contains($t,'electric')) $lu_icon = 'zap';
+                            elseif (str_contains($t,'water')) $lu_icon = 'droplets';
+                            elseif (str_contains($t,'road')||str_contains($t,'transport')) $lu_icon = 'construction';
+                            elseif (str_contains($t,'gas')) $lu_icon = 'flame';
+                            elseif (str_contains($t,'drain')||str_contains($t,'waste')) $lu_icon = 'trash-2';
+                        ?>
+                        <div class="outage-card <?= $is_ongoing ? 'is-ongoing' : ($is_past ? 'opacity-75' : '') ?>"
+                             style="--accent:<?= $u_color ?>;"
+                             role="article">
 
-                    <!-- Tab 1: Outage Bulletins -->
-                    <div class="tab-pane fade show active" id="tab-warnings">
-                        <?php if (empty($all_warnings)): ?>
-                            <div class="portal-card p-5 text-center text-muted">
-                                <i class="bi bi-shield-check fs-1 text-success d-block mb-2"></i>
-                                <h6 class="fw-bold text-dark">No Active or Scheduled Outage Notices</h6>
-                                <p class="small text-muted mb-0">Use the form on the right panel to publish emergency or routine maintenance alerts.</p>
-                            </div>
-                        <?php else: ?>
-                            <div class="portal-card overflow-hidden">
-                                <div class="table-responsive">
-                                    <table class="table portal-table align-middle">
-                                        <thead>
-                                            <tr>
-                                                <th class="ps-3">Utility</th>
-                                                <th>Title &amp; Notice Details</th>
-                                                <th>Schedule Window</th>
-                                                <th class="text-end pe-3">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php foreach ($all_warnings as $w): 
-                                                $now = time();
-                                                $s_ts = strtotime($w['start_time']);
-                                                $e_ts = strtotime($w['end_time']);
-                                                $is_active = ($s_ts <= $now && $e_ts > $now);
-                                                $u_icon = utility_icon($w['utility_type']);
-                                                $u_color = !empty($w['color_code']) ? htmlspecialchars($w['color_code']) : '#d97706';
-                                            ?>
-                                            <tr>
-                                                <td class="ps-3">
-                                                    <span class="badge" style="background: <?= $u_color ?>; color: #fff;">
-                                                        <i class="bi <?= $u_icon ?> me-1"></i><?= htmlspecialchars($w['utility_type']) ?>
-                                                    </span>
-                                                    <?php if ($is_active): ?>
-                                                        <span class="badge bg-danger rounded-pill ms-1">Active</span>
-                                                    <?php else: ?>
-                                                        <span class="badge bg-secondary-subtle text-muted rounded-pill ms-1">Scheduled</span>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td>
-                                                    <div class="fw-bold text-dark"><?= htmlspecialchars($w['title']) ?></div>
-                                                    <small class="text-muted d-block" style="max-width: 320px;">
-                                                        <?= htmlspecialchars(mb_strimwidth($w['description'], 0, 75, '...')) ?>
-                                                    </small>
-                                                </td>
-                                                <td class="small text-muted">
-                                                    <div><i class="bi bi-play-circle text-primary me-1"></i><?= date('M d, g:i A', $s_ts) ?></div>
-                                                    <div><i class="bi bi-stop-circle text-success me-1"></i><?= date('M d, g:i A', $e_ts) ?></div>
-                                                </td>
-                                                <td class="text-end pe-3">
-                                                    <div class="btn-group btn-group-sm">
-                                                        <a href="edit.php?id=<?= $w['warning_id'] ?>" class="btn btn-outline-secondary" title="Edit Warning">
-                                                            <i class="bi bi-pencil"></i>
-                                                        </a>
-                                                        <a href="dashboard.php?delete=<?= $w['warning_id'] ?>" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to delete this outage notice?');" title="Delete Warning">
-                                                            <i class="bi bi-trash3"></i>
-                                                        </a>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
+                            <div class="outage-card-head">
+                                <div class="utility-badge" style="background:<?= $u_color ?>;" aria-hidden="true">
+                                    <i data-lucide="<?= $lu_icon ?>"></i>
+                                    <?= strtoupper($u_type) ?>
+                                </div>
+                                <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                                    <?php if ($is_ongoing): ?>
+                                        <span class="status-pill ongoing" role="status">
+                                            <i data-lucide="circle" style="fill:currentColor;" aria-hidden="true"></i> ONGOING
+                                        </span>
+                                    <?php elseif ($is_past): ?>
+                                        <span class="status-pill scheduled" role="status">
+                                            <i data-lucide="check-circle" aria-hidden="true"></i> EXPIRED
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="status-pill new" role="status">
+                                            <i data-lucide="clock" aria-hidden="true"></i> SCHEDULED
+                                        </span>
+                                    <?php endif; ?>
                                 </div>
                             </div>
-                        <?php endif; ?>
-                    </div>
 
-                    <!-- Tab 2: Resident Complaints Review -->
-                    <div class="tab-pane fade" id="tab-complaints">
-                        <?php if (empty($all_complaints)): ?>
-                            <div class="portal-card p-5 text-center text-muted">
-                                <i class="bi bi-inbox fs-1 text-secondary d-block mb-2"></i>
-                                <h6 class="fw-bold text-dark">No Resident Complaints Lodged</h6>
-                                <p class="small text-muted mb-0">Incoming utility breakdown reports filed by residents will appear here for review and status updates.</p>
+                            <div class="outage-card-body">
+                                <h5><?= htmlspecialchars($w['title']) ?></h5>
+                                <p><?= nl2br(htmlspecialchars($w['description'])) ?></p>
                             </div>
-                        <?php else: ?>
-                            <div class="portal-card overflow-hidden">
-                                <div class="table-responsive">
-                                    <table class="table portal-table align-middle">
-                                        <thead>
-                                            <tr>
-                                                <th class="ps-3"># Ref</th>
-                                                <th>Utility</th>
-                                                <th>Issue &amp; Resident Details</th>
-                                                <th>Status Update</th>
-                                                <th class="text-end pe-3">Delete</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php foreach ($all_complaints as $comp): 
-                                                $cur_status = $comp['status'] ?? 'Pending Review';
-                                            ?>
-                                            <tr>
-                                                <td class="ps-3 fw-bold text-secondary">#<?= $comp['complaint_id'] ?></td>
-                                                <td>
-                                                    <span class="badge bg-light text-dark border">
-                                                        <i class="bi <?= utility_icon($comp['utility_type']) ?> me-1"></i><?= htmlspecialchars($comp['utility_type']) ?>
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <div class="fw-bold text-dark"><?= htmlspecialchars($comp['title']) ?></div>
-                                                    <div class="small text-muted"><?= htmlspecialchars(mb_strimwidth($comp['description'], 0, 70, '...')) ?></div>
-                                                    <div class="small mt-1 text-secondary">
-                                                        <i class="bi bi-person me-1"></i><strong><?= htmlspecialchars($comp['resident_name']) ?></strong> &bull;
-                                                        <i class="bi bi-telephone me-1"></i><?= htmlspecialchars($comp['contact_info']) ?>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <form method="POST" action="dashboard.php" class="d-flex gap-1 align-items-center">
-                                                        <input type="hidden" name="complaint_id" value="<?= $comp['complaint_id'] ?>">
-                                                        <select name="status" class="form-select form-select-sm" style="min-width: 145px; font-size:0.82rem;">
-                                                            <option value="Pending Review" <?= $cur_status === 'Pending Review' ? 'selected' : '' ?>>Pending Review</option>
-                                                            <option value="Warning Published" <?= $cur_status === 'Warning Published' ? 'selected' : '' ?>>Warning Published</option>
-                                                            <option value="Repair in Progress" <?= $cur_status === 'Repair in Progress' ? 'selected' : '' ?>>Repair in Progress</option>
-                                                            <option value="Resolved" <?= $cur_status === 'Resolved' ? 'selected' : '' ?>>Resolved</option>
-                                                        </select>
-                                                        <button type="submit" name="update_status" class="btn btn-sm btn-outline-dark fw-bold">Save</button>
-                                                    </form>
-                                                </td>
-                                                <td class="text-end pe-3">
-                                                    <a href="dashboard.php?delete_complaint=<?= $comp['complaint_id'] ?>" class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete this resident complaint record permanently?');">
-                                                        <i class="bi bi-trash3"></i>
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        <?php endif; ?>
-                    </div>
 
-                    <!-- Tab 3: Notifications Feed -->
-                    <div class="tab-pane fade" id="tab-feed">
-                        <?php if (empty($admin_notifs)): ?>
-                            <div class="portal-card p-5 text-center text-muted">
-                                <i class="bi bi-bell-slash fs-1 text-secondary d-block mb-2"></i>
-                                <h6 class="fw-bold text-dark">No Notifications Recorded</h6>
-                                <p class="small text-muted mb-0">System events and new resident reports will stream into this feed automatically.</p>
-                            </div>
-                        <?php else: ?>
-                            <div class="portal-card p-3">
-                                <?php foreach ($admin_notifs as $an): ?>
-                                    <div class="notif-item <?= $an['is_read'] ? 'read' : '' ?>">
-                                        <div style="font-size:.88rem; color:#1e293b;"><?= htmlspecialchars($an['message']) ?></div>
-                                        <small class="text-muted" style="font-size:0.75rem;"><?= time_ago($an['created_at']) ?></small>
+                            <div class="outage-card-footer">
+                                <div class="outage-time-block">
+                                    <i data-lucide="calendar" style="color:var(--text-secondary);" aria-hidden="true"></i>
+                                    <div>
+                                        <span class="time-label">Starts</span>
+                                        <strong><?= date('M d, Y Â· h:i A', $s_ts) ?></strong>
                                     </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-
-                </div>
-
-            </div>
-
-            <!-- Side Column: Post Outage Warning Form & Municipal Helplines -->
-            <div class="col-lg-4">
-
-                <!-- Post Warning Notice Form Card (Identical layout to Resident Side Cards) -->
-                <div class="portal-card mb-4" id="postWarningSection">
-                    <div class="portal-card-header">
-                        <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
-                            <i class="bi bi-megaphone-fill text-warning"></i> Publish Outage Bulletin
-                        </h6>
-                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Broadcast</span>
-                    </div>
-                    <div class="portal-card-body">
-                        <form method="POST" action="dashboard.php">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold text-dark small">Utility Category <span class="text-danger">*</span></label>
-                                <select name="utility_type" class="form-select form-select-sm" required>
-                                    <option value="Power">⚡ Electricity (CEB)</option>
-                                    <option value="Water">💧 Water Supply (NWSDB)</option>
-                                    <option value="Road">🚧 Road &amp; Infrastructure</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold text-dark small">Bulletin Title <span class="text-danger">*</span></label>
-                                <input type="text" name="title" class="form-control form-control-sm" placeholder="e.g. Emergency Feeder Maintenance" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold text-dark small">Details &amp; Affected Areas <span class="text-danger">*</span></label>
-                                <textarea name="description" class="form-control form-control-sm" rows="3" placeholder="Specify towns, streets, reasons, safety warnings..." required></textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold text-dark small">Severity Color Code</label>
-                                <div class="d-flex align-items-center gap-2">
-                                    <input type="color" name="color_code" class="form-control form-control-color" value="#dc3545" required>
-                                    <small class="text-muted" style="font-size:0.75rem;">Red (#dc3545: Urgent) | Yellow (#f59e0b: Advisory)</small>
                                 </div>
-                            </div>
-                            <div class="row g-2 mb-3">
-                                <div class="col-6">
-                                    <label class="form-label fw-semibold text-dark small">Start Time <span class="text-danger">*</span></label>
-                                    <input type="datetime-local" id="warn_start_time" name="start_time" class="form-control form-control-sm" min="<?= date('Y-m-d\T00:00') ?>" required>
-                                    <div class="invalid-feedback" style="font-size:0.7rem;">Cannot be in past.</div>
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label fw-semibold text-dark small">End Time <span class="text-danger">*</span></label>
-                                    <input type="datetime-local" id="warn_end_time" name="end_time" class="form-control form-control-sm" min="<?= date('Y-m-d\T00:00') ?>" required>
-                                    <div class="invalid-feedback" style="font-size:0.7rem;">Must be after start.</div>
-                                </div>
-                            </div>
-                            <button type="submit" name="add_warning" class="btn btn-hero-action w-100 justify-content-center">
-                                <i class="bi bi-broadcast"></i> Publish Notice to Residents
-                            </button>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Emergency Helplines & Municipal Directory Card (Identical layout to Resident Dashboard) -->
-                <div class="portal-card">
-                    <div class="portal-card-header">
-                        <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
-                            <i class="bi bi-telephone-inbound-fill text-danger"></i> Municipal Dispatch Lines
-                        </h6>
-                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">24/7 Hotlines</span>
-                    </div>
-                    <div class="portal-card-body p-0">
-                        <div class="list-group list-group-flush" style="font-size:0.85rem;">
-                            <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
-                                <div>
-                                    <i class="bi bi-lightning-charge-fill text-warning me-2"></i>
-                                    <strong>Electricity (CEB Dispatch)</strong>
-                                </div>
-                                <span class="badge bg-light text-dark border fw-bold">1987</span>
-                            </div>
-                            <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
-                                <div>
-                                    <i class="bi bi-droplet-fill text-info me-2"></i>
-                                    <strong>Water Board (NWSDB Hot)</strong>
-                                </div>
-                                <span class="badge bg-light text-dark border fw-bold">1939</span>
-                            </div>
-                            <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
-                                <div>
-                                    <i class="bi bi-building text-primary me-2"></i>
-                                    <strong>Balangoda UC Head Office</strong>
-                                </div>
-                                <span class="badge bg-light text-dark border fw-bold">045-2287222</span>
-                            </div>
-                            <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
-                                <div>
-                                    <i class="bi bi-shield-fill text-danger me-2"></i>
-                                    <strong>Balangoda Police Station</strong>
-                                </div>
-                                <span class="badge bg-light text-dark border fw-bold">119</span>
+                                <a href="dashboard.php?delete=<?= $w['warning_id'] ?>" 
+                                   class="btn-delete-outage" 
+                                   onclick="return confirm('Are you sure you want to permanently delete this outage bulletin?');"
+                                   title="Delete Bulletin" aria-label="Delete Outage Bulletin">
+                                    <i data-lucide="trash-2"></i>
+                                </a>
                             </div>
                         </div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
+                <?php endif; ?>
+            </div><!-- /panel-outages -->
 
+            <!-- Complaints Panel -->
+            <div id="panel-complaints"
+                 class="rd-tab-panel"
+                 role="tabpanel"
+                 aria-labelledby="tab-complaints-btn">
+
+                <div class="rd-card">
+                    <div class="rd-card-header">
+                        <div class="rd-card-header-title">
+                            <i data-lucide="clipboard-list" aria-hidden="true"></i>
+                            Resident Complaints Management
+                        </div>
+                    </div>
+                    <?php if (empty($all_complaints)): ?>
+                        <div class="empty-state py-5">
+                            <p class="text-muted mb-0">No complaints have been submitted by residents yet.</p>
+                        </div>
+                    <?php else: ?>
+                    <div style="overflow-x:auto;">
+                        <table class="complaints-tbl" role="table" aria-label="Resident complaints table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Ref &amp; Date</th>
+                                    <th scope="col">Resident &amp; Issue</th>
+                                    <th scope="col">Utility</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($all_complaints as $c):
+                                    $s = strtolower($c['status'] ?? '');
+                                    $badge_class = 'status-default';
+                                    if (str_contains($s,'resolve'))  $badge_class = 'status-resolved';
+                                    elseif (str_contains($s,'progress')) $badge_class = 'status-progress';
+                                    elseif (str_contains($s,'pending'))  $badge_class = 'status-pending';
+                                    elseif (str_contains($s,'warn'))     $badge_class = 'status-warning';
+                                    elseif (str_contains($s,'critical')) $badge_class = 'status-critical';
+
+                                    $ct = strtolower($c['utility_type'] ?? '');
+                                    $c_lucide = 'alert-circle';
+                                    if (str_contains($ct,'power')||str_contains($ct,'electric')) $c_lucide = 'zap';
+                                    elseif (str_contains($ct,'water')) $c_lucide = 'droplets';
+                                    elseif (str_contains($ct,'road')) $c_lucide = 'construction';
+                                    elseif (str_contains($ct,'gas')) $c_lucide = 'flame';
+                                ?>
+                                <tr>
+                                    <td>
+                                        <div class="complaint-ref">#<?= $c['complaint_id'] ?></div>
+                                        <div class="complaint-time"><?= date('M d, Y', strtotime($c['created_at'])) ?></div>
+                                    </td>
+                                    <td>
+                                        <div class="complaint-title"><?= htmlspecialchars($c['title']) ?></div>
+                                        <div class="complaint-desc">By: <?= htmlspecialchars($c['resident_name']) ?></div>
+                                    </td>
+                                    <td>
+                                        <span class="utility-type-badge">
+                                            <i data-lucide="<?= $c_lucide ?>" aria-hidden="true"></i>
+                                            <?= htmlspecialchars($c['utility_type']) ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <form method="POST" action="dashboard.php" class="d-flex align-items-center gap-2">
+                                            <input type="hidden" name="complaint_id" value="<?= $c['complaint_id'] ?>">
+                                            <select name="status" class="form-select form-select-sm" style="width:140px; font-size:0.75rem;">
+                                                <option value="Pending Review" <?= $c['status']=='Pending Review'?'selected':'' ?>>Pending Review</option>
+                                                <option value="In Progress" <?= $c['status']=='In Progress'?'selected':'' ?>>In Progress</option>
+                                                <option value="Resolved" <?= $c['status']=='Resolved'?'selected':'' ?>>Resolved</option>
+                                            </select>
+                                            <button type="submit" name="update_status" class="btn-action-small" title="Update Status">
+                                                <i data-lucide="save"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                    <td>
+                                        <a href="dashboard.php?delete_complaint=<?= $c['complaint_id'] ?>" 
+                                           onclick="return confirm('Delete this complaint record permanently?');"
+                                           class="btn-action-small danger" title="Delete Complaint">
+                                            <i data-lucide="trash-2"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div><!-- /panel-complaints -->
+
+            <!-- Notifications Panel -->
+            <div id="panel-notifs"
+                 class="rd-tab-panel"
+                 role="tabpanel"
+                 aria-labelledby="tab-notifs-btn">
+
+                <div class="rd-card">
+                    <div class="rd-card-header">
+                        <div class="rd-card-header-title">
+                            <i data-lucide="bell-ring" aria-hidden="true"></i>
+                            System Alerts &amp; Activity Logs
+                        </div>
+                    </div>
+                    
+                    <?php if (empty($admin_notifs)): ?>
+                    <div class="empty-state">
+                        <div class="empty-icon-wrap" aria-hidden="true">
+                            <i data-lucide="bell-off"></i>
+                        </div>
+                        <h6>No Alerts</h6>
+                        <p>Your activity log is clean.</p>
+                    </div>
+                    <?php else: ?>
+                    <div class="notif-list" role="list" aria-label="Admin Notifications list">
+                        <?php foreach ($admin_notifs as $an): ?>
+                        <div class="notif-row <?= $an['is_read'] ? '' : 'unread' ?>" role="listitem">
+                            <div class="notif-icon-wrap" aria-hidden="true">
+                                <i data-lucide="activity"></i>
+                            </div>
+                            <div style="flex:1; min-width:0;">
+                                <div class="notif-message"><?= htmlspecialchars($an['message']) ?></div>
+                                <div class="notif-time">
+                                    <i data-lucide="clock" aria-hidden="true"></i>
+                                    <?= time_ago($an['created_at']) ?>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div><!-- /panel-notifs -->
+
+        </div><!-- /rd-main-col -->
+
+
+        <!-- â”€â”€ RIGHT: Form Sidebar (Publish Outage) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <aside class="rd-sidebar" role="complementary" aria-label="Publish Outage Form">
+            <div class="publish-form-card">
+                <div class="publish-form-header">
+                    <i data-lucide="megaphone"></i>
+                    <h5>Publish Outage Warning</h5>
+                </div>
+                <div class="publish-form-body">
+                    <form method="POST" action="dashboard.php">
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="utility_type">Utility Category</label>
+                            <select class="form-control" name="utility_type" id="utility_type" required>
+                                <option value="Electricity">âš¡ Electricity (CEB)</option>
+                                <option value="Water">ðŸ’§ Water Supply (NWSDB)</option>
+                                <option value="Roads">ðŸš§ Road Maintenance</option>
+                                <option value="Waste">ðŸ—‘ï¸ Waste Management</option>
+                                <option value="Other">ðŸ¢ Other Municipal Service</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="title">Bulletin Title</label>
+                            <input type="text" class="form-control" name="title" id="title" required placeholder="e.g. Scheduled Power Cut">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="description">Details &amp; Affected Areas</label>
+                            <textarea class="form-control" name="description" id="description" rows="3" required placeholder="Provide clear details on impacted zones..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Severity Level</label>
+                            <div class="severity-selector">
+                                <label class="severity-option normal">
+                                    <input type="radio" name="color_code" value="#16a34a">
+                                    <span class="severity-label">
+                                        <span class="severity-color-dot"></span> Normal
+                                    </span>
+                                </label>
+                                <label class="severity-option advisory">
+                                    <input type="radio" name="color_code" value="#d97706" checked>
+                                    <span class="severity-label">
+                                        <span class="severity-color-dot"></span> Advisory
+                                    </span>
+                                </label>
+                                <label class="severity-option urgent">
+                                    <input type="radio" name="color_code" value="#dc2626">
+                                    <span class="severity-label">
+                                        <span class="severity-color-dot"></span> Urgent
+                                    </span>
+                                </label>
+                                <label class="severity-option critical">
+                                    <input type="radio" name="color_code" value="#991b1b">
+                                    <span class="severity-label">
+                                        <span class="severity-color-dot"></span> Critical
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="start_time">Start Time</label>
+                            <input type="datetime-local" class="form-control" name="start_time" id="start_time" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="end_time">Expected Restoration</label>
+                            <input type="datetime-local" class="form-control" name="end_time" id="end_time" required>
+                        </div>
+
+                        <button type="submit" name="add_warning" class="btn-publish-outage mt-2">
+                            <i data-lucide="megaphone" aria-hidden="true"></i> Broadcast Bulletin
+                        </button>
+                        
+                    </form>
+                </div>
             </div>
+        </aside><!-- /rd-sidebar -->
 
-        </div>
+    </div><!-- /rd-two-col -->
 
-    </div>
+</main><!-- /rd-page -->
 
-    <!-- Bootstrap JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../js/pwa.js"></script>
-    <script>
-        // ── Show "Enable Notifications" button if permission not yet granted ──
-        if ('Notification' in window && Notification.permission === 'default') {
-            const el = document.getElementById('enable-notif-btn');
-            if (el) el.style.display = '';
-        }
 
-        // ── Notification badge auto-poll (every 30s) ──────────────────
-        const NOTIF_API = '../api/admin_notif_count.php';
+<!-- ============================================================
+     SCRIPTS
+============================================================ -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // â”€â”€ Initialize Lucide Icons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    lucide.createIcons();
 
-        async function fetchNotifCount() {
-            try {
-                const res = await fetch(NOTIF_API, { credentials: 'same-origin' });
-                if (!res.ok) return;
-                const data = await res.json();
-                updateBadge(data.count);
-            } catch (e) { }
-        }
-
-        function updateBadge(count) {
-            const container = document.querySelector('#notif-dropdown-container .notif-bell-btn');
-            if (!container) return;
-            let badge = document.getElementById('notif-badge');
-            if (count > 0) {
-                if (!badge) {
-                    badge = document.createElement('span');
-                    badge.id = 'notif-badge';
-                    badge.className = 'notif-badge';
-                    container.appendChild(badge);
-                }
-                badge.textContent = count;
-            } else {
-                if (badge) badge.remove();
-            }
-        }
-
-        setInterval(fetchNotifCount, 30000);
-
-        // ── Mark all read ─────────────────────────────────────────────
-        document.getElementById('mark-all-read-btn')?.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            try {
-                const fd = new FormData();
-                fd.append('action', 'mark_all_read');
-                await fetch(NOTIF_API, { method: 'POST', body: fd, credentials: 'same-origin' });
-                updateBadge(0);
-                document.querySelectorAll('.notif-item.unread').forEach(el => el.classList.remove('unread'));
-            } catch (e) { }
+    // â”€â”€ Custom Tab System â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    function switchTab(tab) {
+        // Update buttons
+        document.querySelectorAll('.rd-tab-btn').forEach(function(btn) {
+            btn.classList.remove('active');
+            btn.setAttribute('aria-selected', 'false');
         });
+        document.getElementById('tab-' + tab + '-btn').classList.add('active');
+        document.getElementById('tab-' + tab + '-btn').setAttribute('aria-selected', 'true');
 
-        // ── Date-time dependency: Today & future only, and End Time >= Start Time ────────
-        (function () {
-            const startEl = document.getElementById('warn_start_time');
-            const endEl = document.getElementById('warn_end_time');
-            if (!startEl || !endEl) return;
+        // Update panels
+        document.querySelectorAll('.rd-tab-panel').forEach(function(panel) {
+            panel.classList.remove('active');
+        });
+        var panel = document.getElementById('panel-' + tab);
+        if (panel) {
+            panel.classList.add('active');
+            // Re-init Lucide in freshly-shown panel
+            lucide.createIcons();
+        }
+    }
+</script>
 
-            function getTodayMin() {
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}T00:00`;
-            }
-
-            const todayMin = getTodayMin();
-            startEl.min = todayMin;
-            endEl.min = todayMin;
-
-            function validateDates() {
-                const startVal = startEl.value;
-                const endVal = endEl.value;
-
-                if (startVal && startVal < todayMin) {
-                    startEl.classList.add('is-invalid');
-                } else {
-                    startEl.classList.remove('is-invalid');
-                }
-
-                const effectiveEndMin = (startVal && startVal > todayMin) ? startVal : todayMin;
-                endEl.min = effectiveEndMin;
-
-                if (endVal && startVal && endVal < startVal) {
-                    endEl.classList.add('is-invalid');
-                } else if (endVal && endVal < todayMin) {
-                    endEl.classList.add('is-invalid');
-                } else {
-                    endEl.classList.remove('is-invalid');
-                }
-            }
-
-            startEl.addEventListener('change', validateDates);
-            startEl.addEventListener('input', validateDates);
-            endEl.addEventListener('change', validateDates);
-            endEl.addEventListener('input', validateDates);
-
-            startEl.closest('form')?.addEventListener('submit', function (e) {
-                validateDates();
-                if (startEl.classList.contains('is-invalid') || endEl.classList.contains('is-invalid')) {
-                    e.preventDefault();
-                    if (startEl.classList.contains('is-invalid')) {
-                        startEl.focus();
-                    } else {
-                        endEl.focus();
-                    }
-                }
-            });
-        })();
-    </script>
 </body>
 </html>
+
+

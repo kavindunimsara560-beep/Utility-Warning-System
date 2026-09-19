@@ -35,7 +35,8 @@ $admin_username = $admin_logged_in ? htmlspecialchars($_SESSION['admin_username'
 
     <!-- Google Fonts & Bootstrap -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="css/style.css">
@@ -296,7 +297,7 @@ $admin_username = $admin_logged_in ? htmlspecialchars($_SESSION['admin_username'
     <nav class="navbar navbar-expand portal-nav py-3">
         <div class="container">
             <a class="portal-logo" href="index.php">
-                <span class="logo-badge">⚡</span>
+                <span class="logo-badge"><i class="bi bi-lightning-charge-fill"></i></span>
                 <div>
                     <div style="font-size:1.15rem; line-height:1.2;">Balangoda Utility Portal</div>
                     <div style="font-size:0.75rem; color:#94a3b8; font-weight:500;">Municipal Council Outage &amp; Incident Management</div>
@@ -329,8 +330,8 @@ $admin_username = $admin_logged_in ? htmlspecialchars($_SESSION['admin_username'
     <main class="gateway-section">
         <div class="container" style="max-width: 960px;">
             <div class="text-center">
-                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3" style="background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.25); color:var(--cyan-accent); font-size:0.82rem; font-weight:600;">
-                    <i class="bi bi-shield-check"></i> Official Municipal Gateway • Balangoda Urban Council
+                <div class="hero-pill">
+                    <i class="bi bi-shield-check"></i> Official Municipal Gateway &bull; Balangoda Urban Council
                 </div>
                 <h1 class="hero-headline">
                     Municipal Utility <span>Outage &amp; Incident</span> Portal
@@ -345,6 +346,7 @@ $admin_username = $admin_logged_in ? htmlspecialchars($_SESSION['admin_username'
                 <!-- 1. Resident Portal Card -->
                 <div class="col-md-6">
                     <div class="gateway-card resident-gateway">
+                        <div class="gateway-card-accent"></div>
                         <div>
                             <div class="card-icon-wrap resident-icon-wrap">
                                 <i class="bi bi-people-fill"></i>
@@ -355,9 +357,9 @@ $admin_username = $admin_logged_in ? htmlspecialchars($_SESSION['admin_username'
 
                         <div>
                             <?php if ($customer_logged_in): ?>
-                                <div class="active-session-banner">
+                                <div class="session-banner resident-banner">
                                     <span><i class="bi bi-check-circle-fill me-1"></i> Signed in as <strong><?= $customer_name ?></strong></span>
-                                    <a href="logout.php?role=customer" class="text-white-50 text-decoration-none small">Sign Out</a>
+                                    <a href="logout.php?role=customer" class="banner-sign-out">Sign Out</a>
                                 </div>
                                 <div class="d-grid">
                                     <a href="customer/dashboard.php" class="btn-gateway-primary">
@@ -381,6 +383,7 @@ $admin_username = $admin_logged_in ? htmlspecialchars($_SESSION['admin_username'
                 <!-- 2. Administrative Console Card -->
                 <div class="col-md-6">
                     <div class="gateway-card admin-gateway">
+                        <div class="gateway-card-accent"></div>
                         <div>
                             <div class="card-icon-wrap admin-icon-wrap">
                                 <i class="bi bi-shield-lock-fill"></i>
@@ -391,9 +394,9 @@ $admin_username = $admin_logged_in ? htmlspecialchars($_SESSION['admin_username'
 
                         <div>
                             <?php if ($admin_logged_in): ?>
-                                <div class="active-admin-banner">
+                                <div class="session-banner admin-banner">
                                     <span><i class="bi bi-shield-lock-fill me-1"></i> Admin Active: <strong><?= $admin_username ?></strong></span>
-                                    <a href="logout.php?role=admin" class="text-white-50 text-decoration-none small">Sign Out</a>
+                                    <a href="logout.php?role=admin" class="banner-sign-out">Sign Out</a>
                                 </div>
                                 <div class="d-grid">
                                     <a href="admin/dashboard.php" class="btn-gateway-admin">

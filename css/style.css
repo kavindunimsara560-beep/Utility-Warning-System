@@ -1,12 +1,16 @@
-/* ==========================================================================
-   Balangoda Municipal Utility Warning System - Unified Enterprise Design System
+﻿/* ==========================================================================
+   Balangoda Municipal Utility Warning System
+   Unified Enterprise Design System v3.0 — High-End Executive Theme
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Outfit:wght@400;500;600;700;800;900&display=swap');
 
-/* --- Global Design Tokens --- */
+/* ============================================================
+   1. GLOBAL DESIGN TOKENS
+   ============================================================ */
+
 :root {
-    --navy-950: #070b12;
+    --navy-950: #040810;
     --navy-900: #0f172a;
     --navy-800: #1e293b;
     --navy-700: #334155;
@@ -17,445 +21,1154 @@
     --slate-200: #e2e8f0;
     --slate-100: #f1f5f9;
     --slate-50:  #f8fafc;
+    --white:     #ffffff;
 
-    --card-radius: 16px;
-    --card-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
-    --card-shadow-hover: 0 10px 28px rgba(15, 23, 42, 0.1);
+    --surface-0:    #ffffff;
+    --surface-1:    #f8fafc;
+    --surface-2:    #f1f5f9;
+    --surface-card: #ffffff;
 
-    /* Default Theme Accent: Resident Blue/Teal */
-    --role-primary: #2563eb;
-    --role-accent: #0ea5e9;
-    --role-gradient: linear-gradient(135deg, #2563eb 0%, #0284c7 100%);
-    --role-badge-bg: rgba(37, 99, 235, 0.12);
-    --role-badge-color: #1d4ed8;
-    --role-glow: rgba(37, 99, 235, 0.35);
+    --border-light:  rgba(226, 232, 240, 0.8);
+    --border-subtle: rgba(203, 213, 225, 0.6);
+
+    --shadow-xs: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+    --shadow-sm: 0 2px 8px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04);
+    --shadow-md: 0 4px 20px rgba(15,23,42,0.07), 0 2px 6px rgba(15,23,42,0.05);
+    --shadow-lg: 0 10px 36px rgba(15,23,42,0.10), 0 4px 12px rgba(15,23,42,0.06);
+    --shadow-xl: 0 20px 56px rgba(15,23,42,0.14), 0 8px 20px rgba(15,23,42,0.08);
+
+    --radius-sm:   8px;
+    --radius-md:   12px;
+    --radius-lg:   16px;
+    --radius-xl:   20px;
+    --radius-2xl:  24px;
+    --radius-full: 9999px;
+
+    --ease-fast:   cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast:   all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow:   all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --role-primary:       #2563eb;
+    --role-primary-dark:  #1d4ed8;
+    --role-primary-light: #eff6ff;
+    --role-accent:        #0ea5e9;
+    --role-gradient:      linear-gradient(135deg, #2563eb 0%, #0284c7 100%);
+    --role-gradient-soft: linear-gradient(135deg, rgba(37,99,235,0.10) 0%, rgba(2,132,199,0.05) 100%);
+    --role-badge-bg:      rgba(37, 99, 235, 0.10);
+    --role-badge-color:   #1d4ed8;
+    --role-glow:          rgba(37, 99, 235, 0.28);
+    --role-glow-strong:   rgba(37, 99, 235, 0.45);
+
+    --nav-bg: linear-gradient(160deg, #0c1226 0%, #0f172a 60%, #131c35 100%);
+    --nav-border: rgba(255, 255, 255, 0.06);
+    --nav-glow:   0 4px 24px rgba(0, 0, 0, 0.35);
 }
 
-/* --- Color-Coded Role Themes --- */
+/* ============================================================
+   2. ROLE THEMES
+   ============================================================ */
+
 body.theme-resident, .theme-resident {
-    --role-primary: #2563eb;
-    --role-accent: #0ea5e9;
-    --role-gradient: linear-gradient(135deg, #2563eb 0%, #0284c7 100%);
-    --role-badge-bg: rgba(37, 99, 235, 0.12);
-    --role-badge-color: #1d4ed8;
-    --role-glow: rgba(37, 99, 235, 0.35);
+    --role-primary:       #2563eb;
+    --role-primary-dark:  #1d4ed8;
+    --role-primary-light: #eff6ff;
+    --role-accent:        #06b6d4;
+    --role-gradient:      linear-gradient(135deg, #1d4ed8 0%, #0284c7 50%, #0891b2 100%);
+    --role-gradient-soft: linear-gradient(135deg, rgba(29,78,216,0.09) 0%, rgba(8,145,178,0.05) 100%);
+    --role-badge-bg:      rgba(37, 99, 235, 0.10);
+    --role-badge-color:   #1d4ed8;
+    --role-glow:          rgba(37, 99, 235, 0.25);
+    --role-glow-strong:   rgba(37, 99, 235, 0.42);
+    --nav-bg:             linear-gradient(160deg, #060d20 0%, #0c1734 60%, #0f172a 100%);
 }
 
 body.theme-admin, .theme-admin {
-    --role-primary: #d97706;
-    --role-accent: #f59e0b;
-    --role-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    --role-badge-bg: rgba(245, 158, 11, 0.14);
-    --role-badge-color: #b45309;
-    --role-glow: rgba(245, 158, 11, 0.38);
+    --role-primary:       #d97706;
+    --role-primary-dark:  #b45309;
+    --role-primary-light: #fffbeb;
+    --role-accent:        #f59e0b;
+    --role-gradient:      linear-gradient(135deg, #92400e 0%, #d97706 50%, #f59e0b 100%);
+    --role-gradient-soft: linear-gradient(135deg, rgba(146,64,14,0.10) 0%, rgba(245,158,11,0.06) 100%);
+    --role-badge-bg:      rgba(245, 158, 11, 0.12);
+    --role-badge-color:   #92400e;
+    --role-glow:          rgba(217, 119, 6, 0.25);
+    --role-glow-strong:   rgba(217, 119, 6, 0.45);
+    --nav-bg:             linear-gradient(160deg, #0e0b05 0%, #1a120a 60%, #1c1410 100%);
 }
 
-/* --- Base Typography --- */
+/* ============================================================
+   3. BASE & TYPOGRAPHY
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
 body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background-color: var(--slate-100);
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--surface-1);
     color: var(--navy-800);
-    margin: 0;
-    padding: 0;
+    margin: 0; padding: 0;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    line-height: 1.6;
 }
 
 h1, h2, h3, h4, h5, h6, .font-heading {
     font-family: 'Outfit', 'Inter', system-ui, sans-serif;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
+    line-height: 1.25;
+    font-weight: 700;
 }
 
-/* --- Unified Top Navigation (.portal-nav) --- */
+/* ============================================================
+   4. TOP NAVIGATION BAR (.portal-nav)
+   ============================================================ */
+
 .portal-nav {
-    background: linear-gradient(135deg, var(--navy-900) 0%, #161b33 100%);
-    padding: 0.8rem 0;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--nav-bg);
+    padding: 0;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    box-shadow: var(--nav-glow);
+    border-bottom: 1px solid var(--nav-border);
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.portal-nav .container-fluid {
+    height: 100%;
+    display: flex;
+    align-items: center;
 }
 
 .portal-nav .brand {
     color: #f8fafc;
     font-family: 'Outfit', sans-serif;
-    font-size: 1.15rem;
+    font-size: 1.12rem;
     font-weight: 800;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    letter-spacing: -0.02em;
+    transition: var(--transition-fast);
 }
+
+.portal-nav .brand:hover { opacity: 0.88; }
 
 .portal-nav .brand-badge {
     background: var(--role-gradient);
     color: #fff;
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
+    width: 34px; height: 34px;
+    border-radius: 10px;
     display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    align-items: center; justify-content: center;
     font-size: 1rem;
-    box-shadow: 0 2px 10px var(--role-glow);
+    box-shadow: 0 3px 12px var(--role-glow-strong);
+    flex-shrink: 0;
+    transition: var(--transition-normal);
 }
 
-.portal-nav .brand span {
-    color: var(--role-accent);
+.portal-nav .brand:hover .brand-badge {
+    transform: rotate(-5deg) scale(1.06);
+    box-shadow: 0 5px 18px var(--role-glow-strong);
 }
+
+.portal-nav .brand > span:first-of-type { color: var(--role-accent); }
 
 .portal-nav .nav-btn {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 10px;
-    color: #f1f5f9;
-    padding: 0.42rem 0.95rem;
-    font-size: 0.84rem;
-    font-weight: 600;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: var(--radius-sm);
+    color: rgba(241,245,249,0.90);
+    padding: 0.38rem 0.9rem;
+    font-size: 0.82rem; font-weight: 600;
+    font-family: 'Inter', sans-serif;
     text-decoration: none;
-    transition: all 0.18s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+    transition: var(--transition-fast);
+    display: inline-flex; align-items: center;
+    gap: 6px; white-space: nowrap;
+    cursor: pointer; line-height: 1;
 }
 
 .portal-nav .nav-btn:hover {
-    background: rgba(255, 255, 255, 0.18);
+    background: rgba(255,255,255,0.15);
     color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255,255,255,0.25);
     transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
 }
 
 .portal-nav .nav-btn.danger {
-    border-color: rgba(239, 68, 68, 0.35);
-    color: #fca5a5;
+    border-color: rgba(239,68,68,0.30);
+    color: rgba(252,165,165,0.90);
 }
 
 .portal-nav .nav-btn.danger:hover {
-    background: rgba(239, 68, 68, 0.2);
-    color: #fff;
+    background: rgba(239,68,68,0.18);
+    border-color: rgba(239,68,68,0.50);
+    color: #fecaca;
+}
+
+.notif-bell-btn {
+    position: relative;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: var(--radius-sm);
+    color: rgba(241,245,249,0.90);
+    padding: 0.38rem 0.75rem;
+    transition: var(--transition-fast);
+    cursor: pointer;
+    display: inline-flex; align-items: center;
+    gap: 5px; line-height: 1; font-size: 0.9rem;
+}
+
+.notif-bell-btn:hover {
+    background: rgba(255,255,255,0.15);
+    color: #ffffff;
+    border-color: rgba(255,255,255,0.25);
+    transform: translateY(-1px);
+}
+
+.notif-badge {
+    position: absolute;
+    top: -6px; right: -6px;
+    background: #ef4444; color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.6rem; font-weight: 800;
+    border-radius: 50%;
+    min-width: 17px; height: 17px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 2px;
+    border: 2px solid #0f172a;
+    animation: badge-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes badge-pop {
+    0%   { transform: scale(0); }
+    100% { transform: scale(1); }
+}
+
+.notif-dropdown {
+    min-width: 340px; max-height: 420px;
+    overflow-y: auto;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-xl);
+    padding: 0;
+    animation: dropdown-appear 0.18s ease-out;
+}
+
+@keyframes dropdown-appear {
+    from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .nav-avatar-mini {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    object-fit: cover;
+    width: 24px; height: 24px;
+    border-radius: 50%; object-fit: cover;
     flex-shrink: 0;
+    border: 1.5px solid rgba(255,255,255,0.4);
 }
 
-/* --- Unified Hero Header (.portal-hero) --- */
+/* ============================================================
+   5. HERO HEADER (.portal-hero)
+   ============================================================ */
+
 .portal-hero {
-    background: linear-gradient(135deg, #13182e 0%, var(--navy-800) 100%);
+    background: linear-gradient(135deg, #0c1226 0%, var(--navy-900) 50%, #131e38 100%);
     color: #f8fafc;
-    padding: 2.2rem 0 2rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 2.5rem 0 2.25rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+    overflow: hidden;
+}
+
+.portal-hero::before {
+    content: '';
+    position: absolute; top: -40%; right: -5%;
+    width: 420px; height: 420px;
+    background: radial-gradient(circle, var(--role-glow) 0%, transparent 65%);
+    pointer-events: none;
+    animation: hero-glow-drift 8s ease-in-out infinite alternate;
+}
+
+.portal-hero::after {
+    content: '';
+    position: absolute; bottom: -30%; left: 5%;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(255,255,255,0.025) 0%, transparent 65%);
+    pointer-events: none;
+}
+
+@keyframes hero-glow-drift {
+    0%   { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(-20px, 15px) scale(1.1); }
 }
 
 .avatar-circle {
-    width: 62px;
-    height: 62px;
+    width: 64px; height: 64px;
     border-radius: 50%;
     background: var(--role-gradient);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     font-family: 'Outfit', sans-serif;
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: #ffffff;
-    flex-shrink: 0;
-    box-shadow: 0 4px 16px var(--role-glow);
-    border: 2px solid rgba(255, 255, 255, 0.85);
+    font-size: 1.55rem; font-weight: 800;
+    color: #ffffff; flex-shrink: 0;
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.15), 0 6px 20px var(--role-glow-strong);
+    position: relative;
+    transition: var(--transition-normal);
 }
 
 .avatar-circle-img {
-    width: 62px;
-    height: 62px;
-    border-radius: 50%;
-    object-fit: cover;
+    width: 64px; height: 64px;
+    border-radius: 50%; object-fit: cover;
     flex-shrink: 0;
-    border: 2px solid rgba(255, 255, 255, 0.85);
-    box-shadow: 0 4px 16px var(--role-glow);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.20), 0 6px 20px var(--role-glow-strong);
+    border: 2px solid rgba(255,255,255,0.85);
+    transition: var(--transition-normal);
 }
 
 .portal-hero h2 {
-    font-size: 1.45rem;
-    font-weight: 800;
-    margin: 0;
-    color: #ffffff;
+    font-size: 1.5rem; font-weight: 800;
+    margin: 0; color: #ffffff;
+    letter-spacing: -0.03em;
 }
 
 .portal-hero p {
-    color: var(--slate-400);
-    font-size: 0.86rem;
-    margin: 0;
+    color: rgba(148,163,184,0.90);
+    font-size: 0.85rem;
+    margin: 0.15rem 0 0; font-weight: 400;
 }
 
 .role-pill {
-    font-size: 0.74rem;
-    font-weight: 700;
-    padding: 0.25rem 0.65rem;
-    border-radius: 8px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
+    font-size: 0.7rem; font-weight: 700;
+    padding: 0.22rem 0.6rem;
+    border-radius: var(--radius-full);
+    display: inline-flex; align-items: center; gap: 4px;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    font-family: 'Inter', sans-serif;
 }
 
-/* Action buttons in hero */
+/* ============================================================
+   6. HERO ACTION BUTTONS
+   ============================================================ */
+
 .btn-hero-action {
     background: var(--role-gradient);
     color: #ffffff !important;
     font-weight: 700;
-    font-size: 0.92rem;
-    padding: 0.65rem 1.25rem;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 16px var(--role-glow);
-    transition: all 0.2s ease;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.88rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 4px 16px var(--role-glow-strong);
+    transition: var(--transition-normal);
     text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
+    display: inline-flex; align-items: center;
+    gap: 7px; cursor: pointer;
+    letter-spacing: 0.01em;
+    position: relative; overflow: hidden;
+}
+
+.btn-hero-action::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 60%);
+    pointer-events: none;
 }
 
 .btn-hero-action:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px var(--role-glow);
-    color: #ffffff;
+    box-shadow: 0 8px 28px var(--role-glow-strong);
+    color: #ffffff !important;
 }
 
+.btn-hero-action:active { transform: translateY(0); }
+
 .btn-hero-outline {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ffffff !important;
+    background: rgba(255,255,255,0.08);
+    color: rgba(241,245,249,0.95) !important;
     font-weight: 600;
-    font-size: 0.92rem;
-    padding: 0.65rem 1.2rem;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    backdrop-filter: blur(8px);
-    transition: all 0.2s ease;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.88rem;
+    padding: 0.6rem 1.15rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255,255,255,0.18);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: var(--transition-normal);
     text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
+    display: inline-flex; align-items: center;
+    gap: 7px; cursor: pointer;
+    letter-spacing: 0.01em;
 }
 
 .btn-hero-outline:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #ffffff;
+    background: rgba(255,255,255,0.16);
+    color: #ffffff !important;
+    border-color: rgba(255,255,255,0.32);
     transform: translateY(-2px);
 }
 
-/* --- Unified Top Metric Stat Cards (.stat-card) --- */
+/* ============================================================
+   7. STAT / METRIC CARDS (.stat-card)
+   ============================================================ */
+
 .stat-card {
-    background: #ffffff;
-    border-radius: var(--card-radius);
-    padding: 1.2rem 1.35rem;
-    box-shadow: var(--card-shadow);
-    border: 1px solid var(--slate-200);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background: var(--surface-card);
+    border-radius: var(--radius-lg);
+    padding: 1.4rem 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+    transition: var(--transition-normal);
     height: 100%;
-    display: flex;
-    flex-direction: column;
+    display: flex; flex-direction: column;
     justify-content: space-between;
+    position: relative; overflow: hidden;
+}
+
+.stat-card::after {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--role-gradient);
+    opacity: 0;
+    transition: opacity 0.2s ease;
 }
 
 .stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--card-shadow-hover);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
     border-color: var(--slate-300);
 }
 
+.stat-card:hover::after { opacity: 1; }
+
 .stat-card .icon-wrap,
 .stat-card .icon {
-    font-size: 1.65rem;
-    line-height: 1;
-    margin-bottom: 0.35rem;
+    font-size: 1.75rem; line-height: 1;
+    margin-bottom: 0.5rem; display: block;
 }
 
 .stat-card .num {
     font-family: 'Outfit', sans-serif;
-    font-size: 1.95rem;
-    font-weight: 800;
-    color: var(--navy-900);
-    line-height: 1.15;
+    font-size: 2.1rem; font-weight: 900;
+    color: var(--navy-900); line-height: 1.1;
+    letter-spacing: -0.04em;
 }
 
 .stat-card .lbl {
     color: var(--slate-500);
-    font-size: 0.8rem;
-    font-weight: 600;
-    margin-top: 4px;
-    letter-spacing: 0.02em;
+    font-size: 0.77rem; font-weight: 600;
+    margin-top: 5px; letter-spacing: 0.035em;
+    text-transform: uppercase;
+    font-family: 'Inter', sans-serif;
 }
 
-/* --- Unified Portal Tabs (.portal-tabs) --- */
-.portal-tabs {
-    border-bottom: 2px solid var(--slate-200);
-    margin-bottom: 1.5rem;
-    display: flex;
-    gap: 0.5rem;
-}
+/* ============================================================
+   8. PORTAL CARDS (.portal-card)
+   ============================================================ */
 
-.portal-tabs .nav-link {
-    color: var(--slate-500);
-    font-family: 'Outfit', sans-serif;
-    font-size: 0.95rem;
-    font-weight: 600;
-    padding: 0.75rem 1.25rem;
-    border: none;
-    border-radius: 0;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
-    background: none;
-    transition: all 0.15s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.portal-tabs .nav-link:hover {
-    color: var(--navy-900);
-}
-
-.portal-tabs .nav-link.active {
-    color: var(--role-primary);
-    border-bottom: 3px solid var(--role-primary);
-    font-weight: 700;
-    background: none;
-}
-
-/* --- Unified Cards (.portal-card) --- */
 .portal-card {
-    background: #ffffff;
-    border-radius: var(--card-radius);
-    border: 1px solid var(--slate-200);
-    box-shadow: var(--card-shadow);
-    transition: box-shadow 0.2s ease;
+    background: var(--surface-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.22s ease;
+    overflow: hidden;
 }
 
-.portal-card:hover {
-    box-shadow: var(--card-shadow-hover);
-}
+.portal-card:hover { box-shadow: var(--shadow-md); }
 
 .portal-card-header {
-    padding: 1.1rem 1.4rem;
-    border-bottom: 1px solid var(--slate-100);
-    display: flex;
-    align-items: center;
+    padding: 1.15rem 1.5rem;
+    border-bottom: 1px solid var(--surface-2);
+    display: flex; align-items: center;
     justify-content: space-between;
+    background: var(--surface-1);
 }
 
-.portal-card-body {
-    padding: 1.4rem;
+.portal-card-header h5,
+.portal-card-header h6 {
+    margin: 0; font-family: 'Outfit', sans-serif;
+    font-weight: 700; color: var(--navy-800);
+    font-size: 0.97rem;
 }
 
-/* --- Unified Tables (.portal-table) --- */
-.portal-table {
-    margin-bottom: 0;
+.portal-card-body { padding: 1.5rem; }
+
+/* ============================================================
+   9. PORTAL TABS
+   ============================================================ */
+
+.portal-tabs, .cust-tabs, .admin-tabs {
+    border-bottom: 2px solid var(--border-light);
+    margin-bottom: 1.5rem;
+    display: flex; gap: 0.25rem;
+    padding: 0; list-style: none;
 }
 
-.portal-table th {
+.portal-tabs .nav-link,
+.cust-tabs .nav-link,
+.admin-tabs .nav-link,
+.cust-tabs button.nav-link {
+    color: var(--slate-500);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.88rem; font-weight: 600;
+    padding: 0.72rem 1.2rem;
+    border: none; border-radius: 0;
+    border-bottom: 2.5px solid transparent;
+    margin-bottom: -2px;
+    background: none;
+    transition: var(--transition-fast);
+    display: inline-flex; align-items: center;
+    gap: 6px; cursor: pointer;
+    letter-spacing: 0.01em;
+}
+
+.portal-tabs .nav-link:hover,
+.cust-tabs .nav-link:hover,
+.admin-tabs .nav-link:hover,
+.cust-tabs button.nav-link:hover {
+    color: var(--navy-800); background: none;
+}
+
+.portal-tabs .nav-link.active,
+.cust-tabs .nav-link.active,
+.admin-tabs .nav-link.active,
+.cust-tabs button.nav-link.active {
+    color: var(--role-primary);
+    border-bottom: 2.5px solid var(--role-primary);
+    font-weight: 700; background: none;
+}
+
+/* ============================================================
+   10. TABLES
+   ============================================================ */
+
+.portal-table, .complaints-table {
+    margin-bottom: 0; font-size: 0.875rem;
+}
+
+.portal-table thead th,
+.complaints-table thead th {
     background: var(--slate-50) !important;
     color: var(--slate-600) !important;
-    font-size: 0.76rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.85rem 1rem !important;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    padding: 0.9rem 1rem !important;
     border-bottom: 1px solid var(--slate-200) !important;
+    white-space: nowrap;
 }
 
-.portal-table td {
-    padding: 0.85rem 1rem !important;
+.portal-table td, .complaints-table td {
+    padding: 0.9rem 1rem !important;
     vertical-align: middle;
-    font-size: 0.88rem;
+    font-size: 0.875rem;
     border-bottom: 1px solid var(--slate-100);
+    color: var(--navy-800);
 }
 
-.portal-table tr:hover td {
-    background-color: #fafbfd;
+.portal-table tbody tr,
+.complaints-table tbody tr {
+    transition: background-color 0.12s ease;
 }
 
-/* Status Badges */
-.badge-status-resolved { background: #dcfce7; color: #15803d; font-weight: 700; border: 1px solid #bbf7d0; }
-.badge-status-progress { background: #e0f2fe; color: #0369a1; font-weight: 700; border: 1px solid #bae6fd; }
-.badge-status-pending  { background: #fef3c7; color: #b45309; font-weight: 700; border: 1px solid #fde68a; }
+.portal-table tbody tr:hover td,
+.complaints-table tbody tr:hover td {
+    background-color: var(--slate-50);
+}
 
-/* Timeline notifications */
+.portal-table tbody tr:last-child td,
+.complaints-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ============================================================
+   11. STATUS BADGES
+   ============================================================ */
+
+.badge-status-resolved {
+    background: #dcfce7; color: #15803d;
+    font-weight: 700; border: 1px solid #bbf7d0;
+    border-radius: 6px; font-size: 0.73rem;
+    padding: 0.25rem 0.55rem; letter-spacing: 0.03em;
+    font-family: 'Inter', sans-serif;
+}
+
+.badge-status-progress {
+    background: #e0f2fe; color: #0369a1;
+    font-weight: 700; border: 1px solid #bae6fd;
+    border-radius: 6px; font-size: 0.73rem;
+    padding: 0.25rem 0.55rem; letter-spacing: 0.03em;
+    font-family: 'Inter', sans-serif;
+}
+
+.badge-status-pending {
+    background: #fef3c7; color: #b45309;
+    font-weight: 700; border: 1px solid #fde68a;
+    border-radius: 6px; font-size: 0.73rem;
+    padding: 0.25rem 0.55rem; letter-spacing: 0.03em;
+    font-family: 'Inter', sans-serif;
+}
+
+/* ============================================================
+   12. NOTIFICATION ITEMS
+   ============================================================ */
+
 .notif-item {
     border-left: 3px solid var(--role-accent);
-    padding: 0.8rem 1.1rem;
-    margin-bottom: 0.75rem;
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 0.65rem;
     background: var(--slate-50);
-    border-radius: 0 12px 12px 0;
-    transition: background 0.15s;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    transition: var(--transition-fast);
 }
 
+.notif-item:last-child { margin-bottom: 0; }
+
 .notif-item.read {
-    border-left-color: var(--slate-300);
-    opacity: 0.8;
+    border-left-color: var(--slate-300); opacity: 0.75;
 }
 
 .notif-item:hover {
-    background: #f1f5f9;
+    background: var(--slate-100);
+    transform: translateX(2px);
 }
 
-/* --- Form Controls & Universal Portal Buttons --- */
+/* ============================================================
+   13. FORM CONTROLS
+   ============================================================ */
+
+.form-control, .form-select {
+    border-color: var(--slate-200);
+    border-radius: var(--radius-sm);
+    color: var(--navy-800);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.88rem; padding: 0.6rem 0.9rem;
+    transition: var(--transition-fast);
+    background-color: #fff;
+}
+
 .form-control:focus, .form-select:focus {
-    border-color: var(--role-accent);
+    border-color: var(--role-primary);
     box-shadow: 0 0 0 3px var(--role-glow);
     outline: none;
+    background-color: #fff;
 }
+
+.form-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem; font-weight: 600;
+    color: var(--slate-600); margin-bottom: 0.4rem;
+    letter-spacing: 0.01em;
+}
+
+/* ============================================================
+   14. PORTAL BUTTONS
+   ============================================================ */
 
 .portal-btn-primary {
     background: var(--role-gradient);
     color: #ffffff !important;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 14px var(--role-glow);
-    border-radius: 12px;
-    font-weight: 700;
-    font-size: 0.92rem;
-    padding: 0.65rem 1.25rem;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
+    border: none;
+    box-shadow: 0 3px 12px var(--role-glow);
+    border-radius: var(--radius-md);
+    font-family: 'Inter', sans-serif;
+    font-weight: 700; font-size: 0.88rem;
+    padding: 0.62rem 1.2rem;
+    transition: var(--transition-normal);
+    display: inline-flex; align-items: center;
     justify-content: center;
-    gap: 8px;
-    text-decoration: none;
-    cursor: pointer;
+    gap: 7px; text-decoration: none;
+    cursor: pointer; letter-spacing: 0.01em;
 }
 
 .portal-btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px var(--role-glow);
+    box-shadow: 0 7px 22px var(--role-glow-strong);
     color: #ffffff !important;
 }
 
+.portal-btn-primary:active { transform: translateY(0); }
+
 .portal-btn-outline {
     background: #ffffff;
-    color: var(--navy-800) !important;
+    color: var(--navy-700) !important;
     border: 1px solid var(--slate-300);
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 0.92rem;
-    padding: 0.65rem 1.2rem;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
+    border-radius: var(--radius-md);
+    font-family: 'Inter', sans-serif;
+    font-weight: 600; font-size: 0.88rem;
+    padding: 0.62rem 1.15rem;
+    transition: var(--transition-normal);
+    display: inline-flex; align-items: center;
     justify-content: center;
-    gap: 8px;
-    text-decoration: none;
-    cursor: pointer;
+    gap: 7px; text-decoration: none; cursor: pointer;
 }
 
 .portal-btn-outline:hover {
-    background: var(--slate-100);
+    background: var(--slate-50);
     color: var(--navy-900) !important;
     border-color: var(--slate-400);
     transform: translateY(-1px);
+    box-shadow: var(--shadow-xs);
 }
 
+/* ============================================================
+   15. MISC & UTILITY
+   ============================================================ */
+
+@keyframes page-enter {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.container-fluid {
+    animation: page-enter 0.28s ease-out both;
+}
+
+.notif-dropdown::-webkit-scrollbar { width: 5px; }
+.notif-dropdown::-webkit-scrollbar-track { background: transparent; }
+.notif-dropdown::-webkit-scrollbar-thumb {
+    background: var(--slate-300); border-radius: 4px;
+}
+
+/* ============================================================
+   16. PROFILE PAGE
+   ============================================================ */
+
+.profile-avatar-wrap { position: relative; display: inline-block; }
+
+.profile-avatar-large {
+    width: 110px; height: 110px;
+    border-radius: 50%; object-fit: cover;
+    border: 4px solid #ffffff;
+    box-shadow: 0 0 0 3px var(--role-primary), 0 8px 28px var(--role-glow-strong);
+    transition: var(--transition-normal);
+}
+
+.profile-avatar-large:hover { transform: scale(1.04); }
+
+.profile-avatar-initials {
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    background: var(--role-gradient);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Outfit', sans-serif;
+    font-size: 2.5rem; font-weight: 900;
+    color: #ffffff;
+    border: 4px solid #ffffff;
+    box-shadow: 0 0 0 3px var(--role-primary), 0 8px 28px var(--role-glow-strong);
+}
+
+.profile-info-row {
+    display: flex; align-items: flex-start;
+    gap: 1rem; padding: 1rem 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.profile-info-row:last-child { border-bottom: none; }
+
+.profile-info-label {
+    font-size: 0.75rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--slate-500); min-width: 130px;
+    padding-top: 0.1rem;
+}
+
+.profile-info-value {
+    font-size: 0.9rem; color: var(--navy-800); font-weight: 500;
+}
+
+/* ============================================================
+   17. OUTAGE / WARNING CARDS (Resident Dashboard)
+   ============================================================ */
+
+.live-pulse-indicator {
+    width: 11px; height: 11px;
+    background-color: #ef4444; border-radius: 50%;
+    display: inline-block; flex-shrink: 0;
+    animation: live-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+    0%   { transform: scale(0.95); box-shadow: 0 0 0 0   rgba(239,68,68,0.75); }
+    65%  { transform: scale(1.1);  box-shadow: 0 0 0 9px rgba(239,68,68,0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0   rgba(239,68,68,0); }
+}
+
+.pulse-dot {
+    width: 7px; height: 7px;
+    background-color: #ffffff; border-radius: 50%;
+    display: inline-block;
+    animation: live-pulse 1.3s ease-in-out infinite;
+}
+
+.highlight-outage-card {
+    background: #ffffff;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--slate-200);
+    border-left: 5px solid var(--accent-color, #dc3545) !important;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-normal);
+    overflow: hidden;
+}
+
+.highlight-outage-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.highlight-outage-card.is-ongoing {
+    background: linear-gradient(180deg, #fff9f9 0%, #ffffff 80%);
+    border-color: rgba(220,38,38,0.25) !important;
+    border-left-color: var(--accent-color, #dc3545) !important;
+    box-shadow: 0 4px 24px rgba(239,68,68,0.10), var(--shadow-sm);
+}
+
+.highlight-card-header { padding: 1rem 1.25rem 0.7rem; border-bottom: 1px solid var(--slate-100); }
+.highlight-card-body   { padding: 1.1rem 1.25rem; }
+.highlight-card-footer { padding: 0.85rem 1.25rem; background: var(--slate-50); border-top: 1px solid var(--slate-100); }
+
+.utility-icon-pill {
+    width: 34px; height: 34px;
+    border-radius: var(--radius-sm);
+    color: #ffffff; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+
+.badge-ongoing {
+    background: #dc2626; color: #ffffff;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.7rem; font-weight: 800;
+    letter-spacing: 0.05em;
+    padding: 0.3rem 0.6rem; border-radius: 6px;
+    display: inline-flex; align-items: center; gap: 0.4rem;
+}
+
+/* ============================================================
+   18. RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+    .portal-hero { padding: 1.75rem 0 1.5rem; }
+    .portal-hero h2 { font-size: 1.25rem; }
+    .stat-card { padding: 1.1rem 1.15rem; }
+    .stat-card .num { font-size: 1.7rem; }
+    .portal-card-body { padding: 1.1rem; }
+    .portal-card-header { padding: 0.9rem 1.1rem; }
+}
+
+@media (max-width: 576px) {
+    .portal-nav { height: 56px; }
+    .portal-nav .brand { font-size: 0.95rem; }
+    .avatar-circle, .avatar-circle-img { width: 52px; height: 52px; font-size: 1.25rem; }
+}
+
+/* ============================================================
+   19. PREMIUM ICON WRAPS (stat-card icon upgrades)
+   ============================================================ */
+
+/* Replace emoji icon-wraps with styled vector icon wraps */
+.stat-icon-wrap {
+    width: 44px; height: 44px;
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    margin-bottom: 0.6rem;
+}
+
+.stat-icon-wrap.icon-danger  { background: rgba(239,68,68,0.10);  color: #ef4444;  border: 1px solid rgba(239,68,68,0.15); }
+.stat-icon-wrap.icon-primary { background: rgba(37,99,235,0.10);  color: #2563eb;  border: 1px solid rgba(37,99,235,0.15); }
+.stat-icon-wrap.icon-warning { background: rgba(245,158,11,0.10); color: #d97706;  border: 1px solid rgba(245,158,11,0.15); }
+.stat-icon-wrap.icon-success { background: rgba(16,185,129,0.10); color: #059669;  border: 1px solid rgba(16,185,129,0.15); }
+.stat-icon-wrap.icon-role    { background: var(--role-badge-bg); color: var(--role-primary); border: 1px solid rgba(0,0,0,0.06); }
+.stat-icon-wrap.icon-amber   { background: rgba(217,119,6,0.10);  color: #d97706;  border: 1px solid rgba(217,119,6,0.15); }
+.stat-icon-wrap.icon-info    { background: rgba(14,165,233,0.10); color: #0ea5e9;  border: 1px solid rgba(14,165,233,0.15); }
+
+/* ============================================================
+   20. SIDEBAR / HELPLINE / ACCOUNT CARDS (Unified style)
+   ============================================================ */
+
+/* Merge raw Bootstrap cards in sidebars to portal-card aesthetic */
+.sidebar-card {
+    background: var(--surface-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+    transition: box-shadow 0.22s ease;
+}
+
+.sidebar-card:hover { box-shadow: var(--shadow-md); }
+
+.sidebar-card-header {
+    padding: 1.1rem 1.35rem;
+    border-bottom: 1px solid var(--surface-2);
+    background: var(--surface-1);
+    display: flex; align-items: center;
+    justify-content: space-between;
+}
+
+.sidebar-card-header h6 {
+    margin: 0; font-family: 'Outfit', sans-serif;
+    font-weight: 700; font-size: 0.92rem;
+    color: var(--navy-800);
+    display: flex; align-items: center; gap: 8px;
+}
+
+.sidebar-card-body { padding: 1.25rem; }
+
+/* Helpline list items */
+.helpline-item {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.35rem;
+    border-bottom: 1px solid var(--surface-2);
+    transition: background 0.12s ease;
+    font-size: 0.85rem;
+}
+
+.helpline-item:last-child { border-bottom: none; }
+.helpline-item:hover { background: var(--surface-1); }
+
+.helpline-item .helpline-label {
+    display: flex; align-items: center; gap: 8px;
+    color: var(--navy-700); font-weight: 500;
+}
+
+.helpline-item .helpline-number {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700; font-size: 0.9rem;
+    color: var(--navy-900);
+    background: var(--surface-2);
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    letter-spacing: 0.03em;
+}
+
+/* Account info rows */
+.acct-info-row {
+    display: flex; align-items: flex-start;
+    gap: 10px; padding: 0.55rem 0;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.85rem; color: var(--navy-700);
+}
+
+.acct-info-row:last-child { border-bottom: none; }
+
+.acct-info-row i {
+    width: 20px; text-align: center;
+    flex-shrink: 0; margin-top: 1px;
+    font-size: 0.95rem;
+}
+
+.acct-info-row .acct-label {
+    font-weight: 600; color: var(--slate-500);
+    min-width: 60px; font-size: 0.78rem;
+    text-transform: uppercase; letter-spacing: 0.04em;
+}
+
+/* ============================================================
+   21. BADGE UPGRADES — Pill glows and icon pairings
+   ============================================================ */
+
+/* Premium status pill badges */
+.badge-pill-verified {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 0.28rem 0.7rem;
+    border-radius: var(--radius-full);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.72rem; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    background: rgba(16,185,129,0.10);
+    color: #059669;
+    border: 1px solid rgba(16,185,129,0.22);
+    box-shadow: 0 0 10px rgba(16,185,129,0.12);
+}
+
+.badge-pill-admin {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 0.28rem 0.7rem;
+    border-radius: var(--radius-full);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.72rem; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    background: var(--role-badge-bg);
+    color: var(--role-badge-color);
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 0 10px var(--role-glow);
+}
+
+.badge-broadcast {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-full);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.7rem; font-weight: 700;
+    letter-spacing: 0.04em;
+    background: rgba(245,158,11,0.10);
+    color: #d97706;
+    border: 1px solid rgba(245,158,11,0.22);
+}
+
+/* Gateway session banners — enhanced */
+.session-banner {
+    border-radius: var(--radius-md);
+    padding: 0.7rem 1rem;
+    font-size: 0.87rem;
+    margin-bottom: 1.2rem;
+    display: flex; align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.session-banner.resident-banner {
+    background: rgba(16,185,129,0.10);
+    border: 1px solid rgba(16,185,129,0.25);
+    color: #047857;
+}
+
+.session-banner.admin-banner {
+    background: rgba(217,119,6,0.10);
+    border: 1px solid rgba(217,119,6,0.25);
+    color: #92400e;
+}
+
+.session-banner .banner-sign-out {
+    font-size: 0.78rem; font-weight: 600;
+    color: var(--slate-500); text-decoration: none;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-subtle);
+    background: rgba(255,255,255,0.7);
+    transition: var(--transition-fast);
+    white-space: nowrap;
+}
+
+.session-banner .banner-sign-out:hover {
+    background: #fff;
+    color: var(--navy-800);
+    border-color: var(--slate-300);
+}
+
+/* ============================================================
+   22. TABLE ACTION BUTTONS (polish)
+   ============================================================ */
+
+.btn-table-action {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    transition: var(--transition-fast);
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    background: transparent;
+}
+
+.btn-table-action.edit {
+    color: var(--slate-600);
+    border-color: var(--slate-200);
+    background: var(--surface-1);
+}
+
+.btn-table-action.edit:hover {
+    color: var(--role-primary);
+    border-color: var(--role-primary);
+    background: var(--role-badge-bg);
+}
+
+.btn-table-action.delete {
+    color: #dc2626;
+    border-color: rgba(220,38,38,0.2);
+    background: rgba(220,38,38,0.04);
+}
+
+.btn-table-action.delete:hover {
+    background: rgba(220,38,38,0.10);
+    border-color: rgba(220,38,38,0.4);
+    transform: scale(1.08);
+}
+
+/* ============================================================
+   23. INDEX PAGE SPECIFIC ENHANCEMENTS
+   ============================================================ */
+
+/* Gateway card accent lines */
+.gateway-card-accent {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px; border-radius: 22px 22px 0 0;
+    opacity: 0; transition: opacity 0.25s ease;
+}
+
+.resident-gateway:hover .gateway-card-accent {
+    opacity: 1;
+    background: linear-gradient(90deg, #1d4ed8, #06b6d4);
+}
+
+.admin-gateway:hover .gateway-card-accent {
+    opacity: 1;
+    background: linear-gradient(90deg, #92400e, #f59e0b);
+}
+
+/* Feature pill on index hero */
+.hero-pill {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 0.4rem 0.9rem;
+    border-radius: var(--radius-full);
+    background: rgba(56,189,248,0.08);
+    border: 1px solid rgba(56,189,248,0.22);
+    color: #38bdf8;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem; font-weight: 600;
+    letter-spacing: 0.03em;
+    margin-bottom: 1.25rem;
+}
+
+/* ============================================================
+   24. INPUT ICON GROUPS (glassmorphism sidebar inputs)
+   ============================================================ */
+
+.input-group-text {
+    background: var(--surface-1);
+    border-color: var(--slate-200);
+    color: var(--slate-500);
+    font-size: 0.9rem;
+    transition: var(--transition-fast);
+}
+
+.input-group:focus-within .input-group-text {
+    border-color: var(--role-primary);
+    color: var(--role-primary);
+    background: var(--role-badge-bg);
+}
+
+/* ============================================================
+   25. FOCUS RING POLISH (global accessible ring)
+   ============================================================ */
+
+:focus-visible {
+    outline: 2px solid var(--role-primary);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--role-primary);
+    outline-offset: 3px;
+    border-radius: var(--radius-sm);
+}
