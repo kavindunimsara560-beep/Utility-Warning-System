@@ -39,6 +39,51 @@ if (isset($_GET['msg'])) {
     } elseif ($_GET['msg'] === 'account_created') {
         $message = "Welcome! Your admin account was successfully created and you are now signed in.";
         $message_type = "success";
+    } elseif ($_GET['msg'] === 'profile_updated') {
+        $message = "Your profile has been updated successfully!";
+        $message_type = "success";
+    }
+}
+
+// Handle Profile Update from Modal
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_admin_profile') {
+    $full_name = trim($_POST['full_name'] ?? '');
+    $phone     = trim($_POST['phone'] ?? '');
+    $address   = trim($_POST['address'] ?? '');
+
+    $err = '';
+    if (empty($full_name)) {
+        $err = "Full name cannot be empty.";
+    }
+
+    $avatar_path = $admin_profile_pic;
+    if (empty($err) && isset($_FILES['avatar']) && $_FILES['avatar']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $upload_res = handle_avatar_upload($_FILES['avatar'], 'admin', $admin_id, $avatar_path);
+        if ($upload_res['success']) {
+            $avatar_path = $upload_res['path'];
+        } else {
+            $err = $upload_res['error'];
+        }
+    }
+
+    if (empty($err)) {
+        $upd = $conn->prepare("UPDATE admins SET full_name = ?, phone = ?, address = ?, profile_pic = ? WHERE admin_id = ?");
+        if ($upd) {
+            $upd->bind_param("ssssi", $full_name, $phone, $address, $avatar_path, $admin_id);
+            if ($upd->execute()) {
+                $upd->close();
+                header("Location: dashboard.php?msg=profile_updated");
+                exit();
+            } else {
+                $err = "Database error: " . $conn->error;
+            }
+            $upd->close();
+        }
+    }
+
+    if (!empty($err)) {
+        $message = $err;
+        $message_type = "danger";
     }
 }
 
@@ -53,13 +98,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_warning'])) {
 
     $start_ts = strtotime($start_time);
     $end_ts = strtotime($end_time);
-    $today_start = strtotime(date('Y-m-d 00:00:00'));
+    $current_time = time();
 
     if (empty($title) || empty($description) || empty($start_time) || empty($end_time)) {
         $message = "All warning fields are required.";
         $message_type = "danger";
-    } elseif ($start_ts < $today_start) {
-        $message = "Start Date cannot be in the past. Only today and future dates are allowed.";
+    } elseif ($start_ts < $current_time - 300) { // 5 minute grace period
+        $message = "Start Date and Time cannot be in the past. Only current and future times are allowed.";
         $message_type = "danger";
     } elseif ($end_ts < $start_ts) {
         $message = "Warning End Time must be the same as or after Start Time.";
@@ -145,7 +190,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
     exit();
 }
 
-// â”€â”€ Metrics & Data Queries for Unified Stat Cards & Tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Metrics & Data Queries for Unified Stat Cards & Tabs ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 $active_outages_res = $conn->query("SELECT COUNT(*) AS cnt FROM warnings WHERE end_time >= NOW()");
 $active_outages_count = $active_outages_res ? (int)$active_outages_res->fetch_assoc()['cnt'] : 0;
 
@@ -213,7 +258,7 @@ if (!function_exists('utility_icon')) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administrator Console â€” Balangoda Utility System</title>
+    <title>Administrator Console ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Balangoda Utility System</title>
     <link rel="manifest" href="../manifest.json">
     <meta name="theme-color" content="#2563eb">
 
@@ -255,7 +300,7 @@ if (!function_exists('utility_icon')) {
                 </a>
             </li>
             <li>
-                <a href="edit.php" class="nav-link-item" aria-label="My Profile">
+                <a href="#" data-bs-toggle="modal" data-bs-target="#editAdminProfileModal" class="nav-link-item" aria-label="My Profile">
                     <?php if (!empty($admin_profile_pic) && file_exists('../' . $admin_profile_pic)): ?>
                         <img src="../<?= htmlspecialchars($admin_profile_pic) ?>" alt="" class="nav-avatar" aria-hidden="true">
                     <?php else: ?>
@@ -301,6 +346,16 @@ if (!function_exists('utility_icon')) {
                         Municipal Administrator
                     </span>
                 </div>
+                <div class="hero-actions">
+                    <button type="button"
+                            class="btn-edit-profile"
+                            data-bs-toggle="modal"
+                            data-bs-target="#editAdminProfileModal"
+                            aria-label="Edit Profile Details">
+                        <i data-lucide="pencil" aria-hidden="true"></i>
+                        <span>Edit Profile</span>
+                    </button>
+                </div>
                 <div class="hero-meta">
                     <span>
                         <i data-lucide="mail" aria-hidden="true"></i>
@@ -335,7 +390,7 @@ if (!function_exists('utility_icon')) {
 ============================================================ -->
 <main class="rd-page" role="main">
 
-    <!-- â”€â”€ STATISTICS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+    <!-- ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ STATISTICS ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ -->
     <div class="stats-grid" role="region" aria-label="Dashboard statistics">
 
         <!-- Active Outages -->
@@ -378,7 +433,7 @@ if (!function_exists('utility_icon')) {
     </div><!-- /stats-grid -->
 
 
-    <!-- â”€â”€ SERVICE STATUS BANNER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+    <!-- ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ SERVICE STATUS BANNER ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ -->
     <?php if ($active_outages_count > 0): ?>
         <?php
         // Determine if any are ongoing (critical) vs scheduled (advisory)
@@ -419,10 +474,10 @@ if (!function_exists('utility_icon')) {
     <?php endif; ?>
 
 
-    <!-- â”€â”€ TWO-COLUMN LAYOUT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+    <!-- ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ TWO-COLUMN LAYOUT ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ -->
     <div class="rd-two-col">
 
-        <!-- â”€â”€ LEFT: Main Content Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <!-- ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ LEFT: Main Content Area ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ -->
         <div class="rd-main-col">
 
             <!-- Tabs -->
@@ -549,7 +604,7 @@ if (!function_exists('utility_icon')) {
                                     <i data-lucide="calendar" style="color:var(--text-secondary);" aria-hidden="true"></i>
                                     <div>
                                         <span class="time-label">Starts</span>
-                                        <strong><?= date('M d, Y Â· h:i A', $s_ts) ?></strong>
+                                        <strong><?= date('M d, Y Ãƒâ€šÃ‚Â· h:i A', $s_ts) ?></strong>
                                     </div>
                                 </div>
                                 <a href="dashboard.php?delete=<?= $w['warning_id'] ?>" 
@@ -702,7 +757,7 @@ if (!function_exists('utility_icon')) {
         </div><!-- /rd-main-col -->
 
 
-        <!-- â”€â”€ RIGHT: Form Sidebar (Publish Outage) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <!-- ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ RIGHT: Form Sidebar (Publish Outage) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ -->
         <aside class="rd-sidebar" role="complementary" aria-label="Publish Outage Form">
             <div class="publish-form-card">
                 <div class="publish-form-header">
@@ -714,12 +769,12 @@ if (!function_exists('utility_icon')) {
                         
                         <div class="form-group">
                             <label class="form-label" for="utility_type">Utility Category</label>
-                            <select class="form-control" name="utility_type" id="utility_type" required>
-                                <option value="Electricity">âš¡ Electricity (CEB)</option>
-                                <option value="Water">ðŸ’§ Water Supply (NWSDB)</option>
-                                <option value="Roads">ðŸš§ Road Maintenance</option>
-                                <option value="Waste">ðŸ—‘ï¸ Waste Management</option>
-                                <option value="Other">ðŸ¢ Other Municipal Service</option>
+                            <select class="form-select" name="utility_type" id="utility_type" required>
+                                <option value="Electricity">Electricity (CEB)</option>
+                                <option value="Water">Water Supply (NWSDB)</option>
+                                <option value="Roads">Road Maintenance</option>
+                                <option value="Waste">Waste Management</option>
+                                <option value="Other">Other Municipal Service</option>
                             </select>
                         </div>
 
@@ -733,44 +788,16 @@ if (!function_exists('utility_icon')) {
                             <textarea class="form-control" name="description" id="description" rows="3" required placeholder="Provide clear details on impacted zones..."></textarea>
                         </div>
 
-                        <div class="form-group">
-                            <label class="form-label">Severity Level</label>
-                            <div class="severity-selector">
-                                <label class="severity-option normal">
-                                    <input type="radio" name="color_code" value="#16a34a">
-                                    <span class="severity-label">
-                                        <span class="severity-color-dot"></span> Normal
-                                    </span>
-                                </label>
-                                <label class="severity-option advisory">
-                                    <input type="radio" name="color_code" value="#d97706" checked>
-                                    <span class="severity-label">
-                                        <span class="severity-color-dot"></span> Advisory
-                                    </span>
-                                </label>
-                                <label class="severity-option urgent">
-                                    <input type="radio" name="color_code" value="#dc2626">
-                                    <span class="severity-label">
-                                        <span class="severity-color-dot"></span> Urgent
-                                    </span>
-                                </label>
-                                <label class="severity-option critical">
-                                    <input type="radio" name="color_code" value="#991b1b">
-                                    <span class="severity-label">
-                                        <span class="severity-color-dot"></span> Critical
-                                    </span>
-                                </label>
-                            </div>
-                        </div>
+                        >
 
                         <div class="form-group">
                             <label class="form-label" for="start_time">Start Time</label>
-                            <input type="datetime-local" class="form-control" name="start_time" id="start_time" required>
+                            <input type="datetime-local" class="form-control" name="start_time" id="start_time" min="<?= date('Y-m-d\TH:i') ?>" required>
                         </div>
 
                         <div class="form-group">
                             <label class="form-label" for="end_time">Expected Restoration</label>
-                            <input type="datetime-local" class="form-control" name="end_time" id="end_time" required>
+                            <input type="datetime-local" class="form-control" name="end_time" id="end_time" min="<?= date('Y-m-d\TH:i') ?>" required>
                         </div>
 
                         <button type="submit" name="add_warning" class="btn-publish-outage mt-2">
@@ -786,16 +813,75 @@ if (!function_exists('utility_icon')) {
 
 </main><!-- /rd-page -->
 
+<!-- ============================================================
+     ADMIN PROFILE EDIT MODAL
+============================================================ -->
+<div class="modal fade rd-modal" id="editAdminProfileModal" tabindex="-1" aria-labelledby="editAdminProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" action="dashboard.php" enctype="multipart/form-data" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editAdminProfileModalLabel">
+                    <i data-lucide="user-cog" style="width:20px;height:20px;margin-right:8px;vertical-align:text-bottom;"></i> 
+                    Edit Admin Profile
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="action" value="update_admin_profile">
+                
+                <div class="mb-3 text-center">
+                    <div style="position:relative; display:inline-block;">
+                        <?php if (!empty($admin_profile_pic) && file_exists('../' . $admin_profile_pic)): ?>
+                            <img src="../<?= htmlspecialchars($admin_profile_pic) ?>" style="width:90px;height:90px;object-fit:cover;border-radius:50%;border:3px solid var(--primary);box-shadow:var(--shadow-sm);" alt="Current Profile">
+                        <?php else: ?>
+                            <div style="width:90px;height:90px;border-radius:50%;background:var(--primary-muted);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:2rem;font-family:'Outfit';font-weight:800;border:3px solid var(--primary);box-shadow:var(--shadow-sm);">
+                                <?= mb_strtoupper(mb_substr($admin_display_name, 0, 1)) ?>
+                            </div>
+                        <?php endif; ?>
+                        <div style="position:absolute;bottom:0;right:0;background:var(--primary);color:#fff;border-radius:50%;padding:6px;box-shadow:var(--shadow-sm);">
+                            <i data-lucide="camera" style="width:14px;height:14px;"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted fw-bold" style="font-size:0.8rem;">Profile Picture</label>
+                    <input class="form-control form-control-sm" type="file" name="avatar" accept="image/jpeg,image/png,image/gif,image/webp">
+                    <div class="form-text" style="font-size:0.75rem;">Square images work best. Max size: 2MB.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted fw-bold" style="font-size:0.8rem;">Full Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="full_name" value="<?= htmlspecialchars($admin_info['full_name'] ?? '') ?>" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted fw-bold" style="font-size:0.8rem;">Contact Phone</label>
+                    <input type="text" class="form-control" name="phone" value="<?= htmlspecialchars($admin_info['phone'] ?? '') ?>">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted fw-bold" style="font-size:0.8rem;">Office Location</label>
+                    <textarea class="form-control" name="address" rows="2"><?= htmlspecialchars($admin_info['address'] ?? '') ?></textarea>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid var(--border-subtle);">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="font-weight:700;"><i data-lucide="save" style="width:16px;height:16px;margin-right:5px;"></i> Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <!-- ============================================================
      SCRIPTS
 ============================================================ -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // â”€â”€ Initialize Lucide Icons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Initialize Lucide Icons ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
     lucide.createIcons();
 
-    // â”€â”€ Custom Tab System â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Custom Tab System ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
     function switchTab(tab) {
         // Update buttons
         document.querySelectorAll('.rd-tab-btn').forEach(function(btn) {
@@ -816,9 +902,27 @@ if (!function_exists('utility_icon')) {
             lucide.createIcons();
         }
     }
+
+    // Dynamic Date Validation for Outage Warnings
+    var startTimeInput = document.getElementById('start_time');
+    var endTimeInput = document.getElementById('end_time');
+    if (startTimeInput && endTimeInput) {
+        startTimeInput.addEventListener('change', function() {
+            // Set the minimum selectable end time to whatever the start time is
+            if (this.value) {
+                endTimeInput.min = this.value;
+                // If the current end time is before the new start time, reset it
+                if (endTimeInput.value && endTimeInput.value < this.value) {
+                    endTimeInput.value = this.value;
+                }
+            }
+        });
+    }
 </script>
 
 </body>
 </html>
+
+
 
 
