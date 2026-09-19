@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     if (empty($email) || empty($password)) {
         $cust_error = "Please enter your email and password.";
     } else {
-        $stmt = $conn->prepare("SELECT customer_id, full_name, phone, email, password_hash, email_verified FROM customers WHERE email = ? LIMIT 1");
+        $stmt = $conn->prepare("SELECT customer_id, full_name, phone, email, profile_pic, password_hash, email_verified FROM customers WHERE email = ? LIMIT 1");
         if ($stmt) {
             $stmt->bind_param("s", $email);
             $stmt->execute();
@@ -78,11 +78,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             } elseif (!password_verify($password, $cust['password_hash'])) {
                 $cust_error = "Incorrect password. Please verify your credentials and try again.";
             } else {
-                // Success: initialize customer session
-                $_SESSION['customer_id']    = $cust['customer_id'];
-                $_SESSION['customer_name']  = $cust['full_name'];
-                $_SESSION['customer_email'] = $cust['email'];
-                $_SESSION['customer_phone'] = $cust['phone'];
+                // Success: initialize customer session and clear admin session to prevent overlap
+                session_regenerate_id(true);
+                unset($_SESSION['admin_id'], $_SESSION['admin_username'], $_SESSION['admin_email'], $_SESSION['admin_fullname'], $_SESSION['admin_avatar']);
+                $_SESSION['active_role']     = 'customer';
+                $_SESSION['customer_id']     = $cust['customer_id'];
+                $_SESSION['customer_name']   = $cust['full_name'];
+                $_SESSION['customer_email']  = $cust['email'];
+                $_SESSION['customer_phone']  = $cust['phone'];
+                $_SESSION['customer_avatar'] = $cust['profile_pic'] ?? null;
 
                 $target = !empty($redirect) ? $redirect : 'customer/dashboard.php';
                 header("Location: " . $target);
@@ -107,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($identity) || empty($password)) {
             $admin_error = "Please enter your username/email and password.";
         } else {
-            $stmt = $conn->prepare("SELECT admin_id, username, email, password_hash FROM admins WHERE username = ? OR email = ? LIMIT 1");
+            $stmt = $conn->prepare("SELECT admin_id, username, full_name, email, profile_pic, password_hash FROM admins WHERE username = ? OR email = ? LIMIT 1");
             if ($stmt) {
                 $stmt->bind_param("ss", $identity, $identity);
                 $stmt->execute();
@@ -116,9 +120,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 if ($result && $row = $result->fetch_assoc()) {
                     if (password_verify($password, $row['password_hash'])) {
                         session_regenerate_id(true);
+                        unset($_SESSION['customer_id'], $_SESSION['customer_name'], $_SESSION['customer_email'], $_SESSION['customer_phone'], $_SESSION['customer_avatar']);
+                        $_SESSION['active_role']    = 'admin';
                         $_SESSION['admin_id']       = $row['admin_id'];
                         $_SESSION['admin_username'] = $row['username'];
                         $_SESSION['admin_email']    = $row['email'];
+                        $_SESSION['admin_fullname'] = $row['full_name'] ?? null;
+                        $_SESSION['admin_avatar']   = $row['profile_pic'] ?? null;
 
                         $target = (!empty($redirect) && strpos($redirect, 'admin/') !== false) ? $redirect : 'admin/dashboard.php';
                         header("Location: " . $target);
@@ -171,9 +179,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $ins->close();
                     // Auto login
                     session_regenerate_id(true);
+                    unset($_SESSION['customer_id'], $_SESSION['customer_name'], $_SESSION['customer_email'], $_SESSION['customer_phone'], $_SESSION['customer_avatar']);
+                    $_SESSION['active_role']    = 'admin';
                     $_SESSION['admin_id']       = $new_id;
                     $_SESSION['admin_username'] = $username;
                     $_SESSION['admin_email']    = $email;
+                    $_SESSION['admin_fullname'] = null;
+                    $_SESSION['admin_avatar']   = null;
                     header("Location: admin/dashboard.php?msg=account_created");
                     exit();
                 } else {
@@ -192,26 +204,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In — Balangoda Municipal Utility Portal</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#0d6efd">
+    <meta name="theme-color" content="#1d4ed8">
+    <meta name="description" content="Secure login portal for Balangoda Municipal Utility residents and administrators.">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     
     <style>
+        /* ── Login Page Enterprise Theme v3.0 ─────────────────────────── */
         :root {
-            --navy: #090e17;
-            --navy-deep: #0f172a;
-            --navy-card: #1e293b;
-            --cyan: #38bdf8;
-            --blue: #2563eb;
-            --amber: #f59e0b;
+            --l-navy:       #04080f;
+            --l-navy-mid:   #0c1227;
+            --l-card-bg:    rgba(18, 27, 50, 0.95);
+            --l-border:     rgba(255, 255, 255, 0.09);
+            --l-cyan:       #06b6d4;
+            --l-blue:       #2563eb;
+            --l-amber:      #f59e0b;
+            --l-gold:       #d97706;
         }
 
+        *, *::before, *::after { box-sizing: border-box; }
+
         body {
-            font-family: 'Outfit', system-ui, sans-serif;
-            background: linear-gradient(135deg, var(--navy) 0%, #1e1b4b 50%, var(--navy-deep) 100%);
+            font-family: 'Inter', system-ui, sans-serif;
+            background:
+                radial-gradient(ellipse 80% 60% at 70% 0%, rgba(29,78,216,0.18) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 10% 90%, rgba(6,182,212,0.10) 0%, transparent 60%),
+                linear-gradient(160deg, #03060e 0%, #0a1022 45%, #0d1630 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -220,217 +242,342 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             color: #f1f5f9;
         }
 
-        .auth-container {
+        /* Outer glow wrapper */
+        .auth-outer {
             width: 100%;
-            max-width: 900px;
-            background: rgba(30, 41, 59, 0.9);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6);
-            overflow: hidden;
-            display: flex;
+            max-width: 920px;
+            position: relative;
         }
 
-        /* Left Branding Panel */
+        .auth-outer::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 26px;
+            background: linear-gradient(135deg, rgba(37,99,235,0.4) 0%, rgba(6,182,212,0.2) 50%, rgba(217,119,6,0.3) 100%);
+            z-index: 0;
+            filter: blur(1px);
+            opacity: 0.5;
+        }
+
+        .auth-container {
+            width: 100%;
+            background: var(--l-card-bg);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid var(--l-border);
+            border-radius: 24px;
+            box-shadow:
+                0 0 0 1px rgba(255,255,255,0.04) inset,
+                0 40px 100px rgba(0,0,0,0.7),
+                0 12px 32px rgba(0,0,0,0.4);
+            overflow: hidden;
+            display: flex;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── Left Brand Panel ──────────────────────────── */
         .auth-brand-side {
-            background: linear-gradient(160deg, #1e1b4b 0%, #0f172a 100%);
-            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            background:
+                radial-gradient(ellipse 100% 80% at 50% 0%, rgba(29,78,216,0.22) 0%, transparent 60%),
+                linear-gradient(170deg, #0d1535 0%, #080f20 100%);
+            border-right: 1px solid rgba(255,255,255,0.06);
             flex: 0 0 38%;
             padding: 3rem 2.5rem;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-brand-side::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            right: -20%;
+            width: 260px; height: 260px;
+            background: radial-gradient(circle, rgba(6,182,212,0.08) 0%, transparent 70%);
+            pointer-events: none;
         }
 
         .brand-badge {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 52px;
-            height: 52px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            width: 56px; height: 56px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #1d4ed8 0%, #06b6d4 100%);
             color: #ffffff;
-            font-size: 1.7rem;
-            box-shadow: 0 8px 20px rgba(245, 158, 11, 0.35);
-            margin-bottom: 1.25rem;
+            font-size: 1.75rem;
+            box-shadow: 0 8px 24px rgba(29,78,216,0.45), 0 0 0 1px rgba(255,255,255,0.15) inset;
+            margin-bottom: 1.35rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .brand-badge:hover {
+            transform: rotate(-6deg) scale(1.08);
+            box-shadow: 0 12px 32px rgba(29,78,216,0.55), 0 0 0 1px rgba(255,255,255,0.2) inset;
         }
 
         .auth-brand-side h2 {
+            font-family: 'Outfit', sans-serif;
             font-weight: 800;
-            font-size: 1.5rem;
+            font-size: 1.45rem;
             line-height: 1.25;
             color: #f8fafc;
-            margin-bottom: 0.75rem;
+            margin-bottom: 0.7rem;
+            letter-spacing: -0.025em;
         }
 
         .auth-brand-side p {
-            color: #94a3b8;
-            font-size: 0.88rem;
-            line-height: 1.6;
+            color: rgba(148, 163, 184, 0.85);
+            font-size: 0.86rem;
+            line-height: 1.65;
+            margin: 0;
         }
+
+        .brand-feature-list { margin-top: 1.75rem; }
 
         .brand-feature-item {
             display: flex;
             align-items: center;
             gap: 10px;
-            color: #cbd5e1;
-            font-size: 0.85rem;
-            margin-bottom: 0.75rem;
+            color: rgba(203, 213, 225, 0.90);
+            font-size: 0.84rem;
+            font-weight: 500;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
         }
+
+        .brand-feature-item:last-child { border-bottom: none; }
 
         .brand-feature-item i {
-            color: var(--cyan);
-            font-size: 1rem;
+            color: var(--l-cyan);
+            font-size: 1.05rem;
+            flex-shrink: 0;
+            width: 20px;
+            text-align: center;
         }
 
-        /* Right Form Side */
+        /* ── Right Form Panel ──────────────────────────── */
         .auth-form-side {
             flex: 1;
             padding: 3rem 2.75rem;
+            position: relative;
         }
 
-        /* Role Switcher */
+        /* ── Role Switcher ─────────────────────────────── */
         .role-switcher {
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(8, 14, 30, 0.65);
+            border: 1px solid rgba(255,255,255,0.09);
             border-radius: 14px;
-            padding: 5px;
+            padding: 4px;
             display: flex;
-            gap: 4px;
+            gap: 3px;
             margin-bottom: 2rem;
         }
 
         .role-btn {
             flex: 1;
-            padding: 0.65rem 1rem;
+            padding: 0.62rem 1rem;
             border: none;
             background: transparent;
-            color: #94a3b8;
-            font-weight: 700;
-            font-size: 0.9rem;
-            border-radius: 10px;
+            color: rgba(148,163,184,0.85);
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 0.86rem;
+            border-radius: 11px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            transition: all 0.2s ease;
+            gap: 7px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
             text-decoration: none;
+            letter-spacing: 0.01em;
         }
 
         .role-btn:hover {
             color: #ffffff;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255,255,255,0.07);
         }
 
         .role-btn.active.resident {
-            background: #2563eb;
+            background: linear-gradient(135deg, #1d4ed8, #0284c7);
             color: #ffffff;
-            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+            box-shadow: 0 4px 16px rgba(29,78,216,0.45), 0 0 0 1px rgba(255,255,255,0.12) inset;
         }
 
         .role-btn.active.admin {
-            background: #d97706;
+            background: linear-gradient(135deg, #92400e, #d97706);
             color: #ffffff;
-            box-shadow: 0 4px 14px rgba(217, 119, 6, 0.4);
+            box-shadow: 0 4px 16px rgba(146,64,14,0.45), 0 0 0 1px rgba(255,255,255,0.12) inset;
         }
 
-        /* Form Inputs */
+        /* ── Form Section Header ───────────────────────── */
+        .form-section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #f8fafc;
+            margin: 0 0 0.35rem;
+            letter-spacing: -0.03em;
+        }
+
+        .form-section-sub {
+            color: rgba(148,163,184,0.80);
+            font-size: 0.85rem;
+            margin: 0;
+        }
+
+        /* ── Form Inputs ───────────────────────────────── */
         .form-label {
-            color: #cbd5e1;
-            font-size: 0.83rem;
+            color: rgba(203,213,225,0.90);
+            font-size: 0.8rem;
             font-weight: 600;
-            margin-bottom: 0.35rem;
+            margin-bottom: 0.4rem;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
         }
 
         .form-control {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            color: #ffffff;
+            background: rgba(255,255,255,0.055);
+            border: 1px solid rgba(255,255,255,0.11);
+            color: #f1f5f9;
             border-radius: 10px;
-            padding: 0.65rem 0.9rem;
-            font-family: 'Outfit', sans-serif;
-            font-size: 0.92rem;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            padding: 0.7rem 0.95rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 400;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+            width: 100%;
+        }
+
+        .form-control:hover {
+            border-color: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.07);
         }
 
         .form-control:focus {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: var(--cyan);
-            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+            background: rgba(255,255,255,0.09);
+            border-color: var(--l-cyan);
+            box-shadow: 0 0 0 3px rgba(6,182,212,0.22);
             color: #ffffff;
             outline: none;
         }
 
-        .form-control::placeholder {
-            color: #64748b;
+        .form-control::placeholder { color: rgba(100,116,139,0.75); }
+
+        /* Admin-themed focus */
+        .admin-form .form-control:focus {
+            border-color: var(--l-amber);
+            box-shadow: 0 0 0 3px rgba(245,158,11,0.22);
         }
 
+        /* ── Submit Buttons ────────────────────────────── */
         .btn-submit {
             border: none;
             border-radius: 12px;
             color: #ffffff;
+            font-family: 'Inter', sans-serif;
             font-weight: 700;
-            font-size: 0.95rem;
-            padding: 0.75rem;
+            font-size: 0.92rem;
+            padding: 0.78rem 1rem;
             width: 100%;
-            transition: all 0.2s;
+            transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.015em;
+        }
+
+        .btn-submit::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 60%);
+            pointer-events: none;
         }
 
         .btn-resident {
-            background: linear-gradient(135deg, #2563eb, #38bdf8);
-            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+            background: linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%);
+            box-shadow: 0 6px 20px rgba(29,78,216,0.40);
         }
 
         .btn-resident:hover {
-            box-shadow: 0 10px 24px rgba(37, 99, 235, 0.5);
+            box-shadow: 0 10px 28px rgba(29,78,216,0.55);
             transform: translateY(-2px);
             color: #ffffff;
         }
 
+        .btn-resident:active { transform: translateY(0); }
+
         .btn-admin {
-            background: linear-gradient(135deg, #d97706, #f59e0b);
-            color: #0f172a;
-            box-shadow: 0 6px 18px rgba(217, 119, 6, 0.35);
+            background: linear-gradient(135deg, #92400e 0%, #d97706 60%, #f59e0b 100%);
+            color: #ffffff;
+            box-shadow: 0 6px 20px rgba(146,64,14,0.40);
         }
 
         .btn-admin:hover {
-            box-shadow: 0 10px 24px rgba(217, 119, 6, 0.5);
+            box-shadow: 0 10px 28px rgba(146,64,14,0.55);
             transform: translateY(-2px);
-            color: #0f172a;
+            color: #ffffff;
         }
 
+        .btn-admin:active { transform: translateY(0); }
+
+        /* ── Password Toggle ───────────────────────────── */
         .toggle-pw-btn {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255,255,255,0.055);
+            border: 1px solid rgba(255,255,255,0.11);
             border-left: none;
-            color: #94a3b8;
+            color: rgba(148,163,184,0.80);
             border-radius: 0 10px 10px 0;
-            padding: 0 0.85rem;
+            padding: 0 0.9rem;
             cursor: pointer;
+            transition: color 0.15s, background 0.15s;
         }
 
+        .toggle-pw-btn:hover {
+            background: rgba(255,255,255,0.10);
+            color: #cbd5e1;
+        }
+
+        /* ── Admin Whitelist Box ───────────────────────── */
         .whitelist-box {
-            background: rgba(245, 158, 11, 0.1);
-            border: 1px solid rgba(245, 158, 11, 0.25);
+            background: rgba(245,158,11,0.09);
+            border: 1px solid rgba(245,158,11,0.22);
+            border-left: 3px solid #d97706;
             border-radius: 10px;
             padding: 0.75rem 1rem;
-            font-size: 0.8rem;
+            font-size: 0.81rem;
             color: #fde68a;
             margin-bottom: 1.25rem;
+            line-height: 1.55;
         }
 
+        /* ── Divider ───────────────────────────────────── */
+        .auth-divider {
+            border-color: rgba(255,255,255,0.06);
+        }
+
+        /* ── Responsive ────────────────────────────────── */
         @media (max-width: 768px) {
             .auth-brand-side { display: none; }
-            .auth-container { max-width: 480px; }
-            .auth-form-side { padding: 2rem 1.75rem; }
+            .auth-outer { max-width: 480px; }
+            .auth-form-side { padding: 2.25rem 1.75rem; }
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 1rem; }
+            .auth-form-side { padding: 1.75rem 1.35rem; }
         }
     </style>
 </head>
 <body>
 
+    <div class="auth-outer">
     <div class="auth-container">
         <!-- Left Brand Side -->
         <div class="auth-brand-side">
@@ -438,8 +585,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 <div class="brand-badge">⚡</div>
                 <h2>Balangoda Municipal<br>Utility Portal</h2>
                 <p>Official single sign-in gateway for both Balangoda citizens and municipal authorities.</p>
-                
-                <div class="mt-4">
+
+                <div class="brand-feature-list">
                     <div class="brand-feature-item">
                         <i class="bi bi-broadcast"></i>
                         <span>Live power, water &amp; road outages</span>
@@ -452,12 +599,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         <i class="bi bi-clock-history"></i>
                         <span>Real-time dispatch &amp; tracking</span>
                     </div>
+                    <div class="brand-feature-item">
+                        <i class="bi bi-people-fill"></i>
+                        <span>Resident complaint management</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="pt-4 border-top" style="border-color:rgba(255,255,255,0.08)!important;">
+            <div class="pt-4 auth-divider border-top">
                 <a href="index.php" class="text-secondary text-decoration-none small d-inline-flex align-items-center gap-1">
-                    <i class="bi bi-arrow-left"></i> Back to Outage Warnings
+                    <i class="bi bi-arrow-left"></i> Back to Public Site
                 </a>
             </div>
         </div>
@@ -489,8 +640,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             <!-- ============================================== -->
             <?php if ($active_role === 'customer'): ?>
                 <div class="mb-3">
-                    <h3 class="fw-bold text-white mb-1" style="font-size:1.4rem;">Resident Sign In</h3>
-                    <p class="text-secondary small mb-0">Sign in to report utility issues, track repairs, and receive alerts.</p>
+                    <h3 class="form-section-title">Resident Sign In</h3>
+                    <p class="form-section-sub">Sign in to track utility outages, report issues, and receive alerts.</p>
                 </div>
 
                 <?php if ($customer_logged_in): ?>
@@ -549,10 +700,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             <?php else: ?>
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div>
-                        <h3 class="fw-bold text-white mb-1" style="font-size:1.4rem;">
-                            <?= $admin_tab === 'signup' ? 'Admin Registration' : 'Municipal Admin Sign In' ?>
+                        <h3 class="form-section-title">
+                            <?= $admin_tab === 'signup' ? 'Admin Registration' : 'Admin Console Sign In' ?>
                         </h3>
-                        <p class="text-secondary small mb-0">Authorized management console for municipal utility staff.</p>
+                        <p class="form-section-sub">Authorized management console for municipal utility staff.</p>
                     </div>
 
                     <?php if (!$admin_logged_in): ?>
@@ -587,7 +738,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             <strong>Authorized Staff Only:</strong> Registration is restricted to approved municipal staff emails (<code>kavindunimsara560@gmail.com</code>).
                         </div>
 
-                        <form method="POST" action="login.php">
+                        <form method="POST" action="login.php" class="admin-form">
                             <input type="hidden" name="action" value="admin_signup">
                             <input type="hidden" name="role" value="admin">
 
@@ -618,7 +769,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         </form>
                     <?php else: ?>
                         <!-- Admin Signin Mode -->
-                        <form method="POST" action="login.php">
+                        <form method="POST" action="login.php" class="admin-form">
                             <input type="hidden" name="action" value="admin_signin">
                             <input type="hidden" name="role" value="admin">
                             <?php if (!empty($redirect)): ?>
@@ -653,13 +804,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 <?php endif; ?>
             <?php endif; ?>
 
-            <div class="mt-4 pt-3 border-top text-center" style="border-color:rgba(255,255,255,0.06)!important;">
-                <a href="index.php" class="text-secondary small text-decoration-none">
-                    <i class="bi bi-house-door me-1"></i> Return to Public Home Page
+            <div class="mt-4 pt-3 border-top auth-divider text-center">
+                <a href="index.php" class="text-secondary small text-decoration-none d-inline-flex align-items-center gap-1">
+                    <i class="bi bi-house-door"></i> Return to Public Home Page
                 </a>
             </div>
         </div>
     </div>
+    </div><!-- /.auth-outer -->
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>

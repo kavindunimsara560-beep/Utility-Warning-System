@@ -70,24 +70,56 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_warning'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Warning - Admin Dashboard</title>
+    <title>Edit Warning Notice — Balangoda Utility Admin</title>
+    <link rel="manifest" href="../manifest.json">
+    <meta name="theme-color" content="#d97706">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="../css/style.css">
 </head>
 
-<body class="bg-light">
-    <nav class="navbar navbar-dark bg-dark shadow-sm mb-4">
+<body class="theme-admin">
+
+    <!-- Unified Top Navigation (Admin Theme) -->
+    <nav class="portal-nav mb-4">
         <div class="container-fluid px-4">
-            <span class="navbar-brand mb-0 h1 fw-bold">Edit Outage Warning Notice</span>
-            <a href="dashboard.php" class="btn btn-outline-light btn-sm">← Back to Dashboard</a>
+            <div class="d-flex align-items-center justify-content-between">
+                <a href="dashboard.php" class="brand">
+                    <span class="brand-badge">⚡</span>
+                    <span>Balangoda</span> Admin Console
+                </a>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="dashboard.php" class="nav-btn">
+                        <i class="bi bi-speedometer2"></i>
+                        <span class="d-none d-sm-inline">Dashboard</span>
+                    </a>
+                    <a href="profile.php" class="nav-btn">
+                        <i class="bi bi-person-circle"></i>
+                        <span class="d-none d-sm-inline">My Profile</span>
+                    </a>
+                    <a href="logout.php" class="nav-btn danger">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span class="d-none d-sm-inline">Logout</span>
+                    </a>
+                </div>
+            </div>
         </div>
     </nav>
 
-    <div class="container my-4" style="max-width: 650px;">
-        <div class="card shadow-sm border-0 p-4">
-            <h4 class="mb-3 fw-bold">Update Warning #<?php echo $warning_id; ?></h4>
+    <div class="container my-4" style="max-width: 680px;">
+        <div class="portal-card p-4">
+            <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                <div>
+                    <h4 class="mb-1 fw-bold text-dark">Update Outage Notice #<?php echo $warning_id; ?></h4>
+                    <small class="text-muted">Modify scheduled dates, utility sector, or citizen advisory description.</small>
+                </div>
+                <span class="role-pill bg-warning-subtle text-warning border border-warning-subtle">Admin Edit</span>
+            </div>
+
             <?php if (!empty($message)): ?>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <div class="alert alert-danger alert-dismissible fade show" role="alert" style="border-radius:12px;">
                     <?php echo htmlspecialchars($message); ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
@@ -95,57 +127,58 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_warning'])) {
 
             <form method="POST" action="edit.php?id=<?php echo $warning_id; ?>">
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Utility Type</label>
+                    <label class="form-label fw-semibold text-dark small">Utility Type</label>
                     <select name="utility_type" class="form-select" required>
                         <option value="Power" <?php if ($warning['utility_type'] == 'Power')
-                            echo 'selected'; ?>>Power
+                            echo 'selected'; ?>>Power (CEB)
                         </option>
                         <option value="Water" <?php if ($warning['utility_type'] == 'Water')
-                            echo 'selected'; ?>>Water
+                            echo 'selected'; ?>>Water (NWSDB)
                         </option>
                         <option value="Road" <?php if ($warning['utility_type'] == 'Road')
-                            echo 'selected'; ?>>Road
+                            echo 'selected'; ?>>Road &amp; Municipal
                         </option>
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Title</label>
+                    <label class="form-label fw-semibold text-dark small">Title / Notice Headline</label>
                     <input type="text" name="title" class="form-control"
                         value="<?php echo htmlspecialchars($warning['title']); ?>" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Description</label>
+                    <label class="form-label fw-semibold text-dark small">Description &amp; Affected Areas</label>
                     <textarea name="description" class="form-control" rows="3"
                         required><?php echo htmlspecialchars($warning['description']); ?></textarea>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Color Code (Hex)</label>
+                    <label class="form-label fw-semibold text-dark small">Color Code (Hex Accent)</label>
                     <div class="d-flex align-items-center gap-2">
                         <input type="color" name="color_code" class="form-control form-control-color"
                             value="<?php echo htmlspecialchars($warning['color_code']); ?>" required>
-                        <span class="text-muted small">Choose card accent color</span>
+                        <span class="text-muted small">Choose card accent color for resident dashboard</span>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-semibold">Start Time</label>
+                        <label class="form-label fw-semibold text-dark small">Start Time</label>
                         <input type="datetime-local" id="edit_start_time" name="start_time" class="form-control"
                             value="<?php echo date('Y-m-d\TH:i', strtotime($warning['start_time'])); ?>"
                             min="<?= date('Y-m-d\T00:00') ?>" required>
                         <div class="invalid-feedback">Start date cannot be before today.</div>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-semibold">End Time</label>
+                        <label class="form-label fw-semibold text-dark small">End Time</label>
                         <input type="datetime-local" id="edit_end_time" name="end_time" class="form-control"
                             value="<?php echo date('Y-m-d\TH:i', strtotime($warning['end_time'])); ?>"
                             min="<?= date('Y-m-d\T00:00') ?>" required>
                         <div class="invalid-feedback">End time must be after start time and not in the past.</div>
                     </div>
                 </div>
-                <div class="d-flex gap-2 mt-2">
-                    <button type="submit" name="update_warning" class="btn btn-primary w-100 fw-bold">Update Warning
-                        Notice</button>
-                    <a href="dashboard.php" class="btn btn-outline-secondary px-4">Cancel</a>
+                <div class="d-flex justify-content-end gap-2 mt-4 pt-2 border-top">
+                    <a href="dashboard.php" class="portal-btn-outline">Cancel</a>
+                    <button type="submit" name="update_warning" class="portal-btn-primary">
+                        <i class="bi bi-check2-circle me-1"></i>Update Warning Notice
+                    </button>
                 </div>
             </form>
         </div>

@@ -2,11 +2,27 @@
 session_start();
 require_once 'config/db_connect.php';
 
-// Check active session states
-$customer_logged_in = isset($_SESSION['customer_id']);
-$customer_name      = $customer_logged_in ? htmlspecialchars($_SESSION['customer_name'] ?? 'Resident') : '';
-$admin_logged_in    = isset($_SESSION['admin_id']);
-$admin_username     = $admin_logged_in ? htmlspecialchars($_SESSION['admin_username'] ?? 'Administrator') : '';
+// Check active session states and strictly prevent overlap between resident and admin cards
+$has_customer = !empty($_SESSION['customer_id']);
+$has_admin    = !empty($_SESSION['admin_id']);
+$active_role  = $_SESSION['active_role'] ?? '';
+
+if ($has_customer && $has_admin) {
+    // If both exist in the browser session, enforce single active state based on active_role
+    if ($active_role === 'admin') {
+        $customer_logged_in = false;
+        $admin_logged_in    = true;
+    } else {
+        $customer_logged_in = true;
+        $admin_logged_in    = false;
+    }
+} else {
+    $customer_logged_in = $has_customer;
+    $admin_logged_in    = $has_admin;
+}
+
+$customer_name  = $customer_logged_in ? htmlspecialchars($_SESSION['customer_name'] ?? 'Resident') : '';
+$admin_username = $admin_logged_in ? htmlspecialchars($_SESSION['admin_username'] ?? 'Administrator') : '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -19,7 +35,8 @@ $admin_username     = $admin_logged_in ? htmlspecialchars($_SESSION['admin_usern
 
     <!-- Google Fonts & Bootstrap -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="css/style.css">
@@ -173,68 +190,70 @@ $admin_username     = $admin_logged_in ? htmlspecialchars($_SESSION['admin_usern
         }
 
         .btn-gateway-primary {
-            background: linear-gradient(135deg, #2563eb, #38bdf8);
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
             color: #ffffff;
-            border: none;
-            border-radius: 12px;
             font-weight: 700;
-            font-size: 0.95rem;
-            padding: 0.75rem 1.25rem;
-            transition: all 0.2s;
-            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+            font-size: 1rem;
+            padding: 0.85rem 1.5rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
             text-decoration: none;
-            display: inline-flex;
+            display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 4px 18px rgba(37, 99, 235, 0.4);
+            transition: all 0.2s ease;
         }
 
         .btn-gateway-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 24px rgba(37, 99, 235, 0.45);
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
             color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(37, 99, 235, 0.55);
         }
 
         .btn-gateway-admin {
-            background: linear-gradient(135deg, #d97706, #f59e0b);
-            color: #0f172a;
-            border: none;
-            border-radius: 12px;
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+            color: #ffffff;
             font-weight: 700;
-            font-size: 0.95rem;
-            padding: 0.75rem 1.25rem;
-            transition: all 0.2s;
-            box-shadow: 0 6px 18px rgba(217, 119, 6, 0.35);
+            font-size: 1rem;
+            padding: 0.85rem 1.5rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
             text-decoration: none;
-            display: inline-flex;
+            display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 4px 18px rgba(217, 119, 6, 0.4);
+            transition: all 0.2s ease;
         }
 
         .btn-gateway-admin:hover {
+            background: linear-gradient(135deg, #b45309 0%, #92400e 100%);
+            color: #ffffff;
             transform: translateY(-2px);
-            box-shadow: 0 10px 24px rgba(217, 119, 6, 0.45);
-            color: #0f172a;
+            box-shadow: 0 6px 24px rgba(217, 119, 6, 0.55);
         }
 
         .btn-gateway-outline {
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
             color: #cbd5e1;
             font-weight: 600;
-            font-size: 0.95rem;
-            padding: 0.75rem 1.25rem;
-            background: rgba(255, 255, 255, 0.04);
-            transition: all 0.2s;
+            font-size: 0.92rem;
+            padding: 0.65rem 1.25rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
             text-decoration: none;
-            display: inline-flex;
+            display: flex;
             align-items: center;
             justify-content: center;
+            transition: all 0.2s ease;
         }
 
         .btn-gateway-outline:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.12);
             color: #ffffff;
-            border-color: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.25);
         }
 
         .active-session-banner {
@@ -278,7 +297,7 @@ $admin_username     = $admin_logged_in ? htmlspecialchars($_SESSION['admin_usern
     <nav class="navbar navbar-expand portal-nav py-3">
         <div class="container">
             <a class="portal-logo" href="index.php">
-                <span class="logo-badge">⚡</span>
+                <span class="logo-badge"><i class="bi bi-lightning-charge-fill"></i></span>
                 <div>
                     <div style="font-size:1.15rem; line-height:1.2;">Balangoda Utility Portal</div>
                     <div style="font-size:0.75rem; color:#94a3b8; font-weight:500;">Municipal Council Outage &amp; Incident Management</div>
@@ -291,10 +310,10 @@ $admin_username     = $admin_logged_in ? htmlspecialchars($_SESSION['admin_usern
                     <i class="bi bi-download me-1"></i> Install App
                 </button>
 
-                <!-- Active Session Badges if already signed in -->
+                <!-- Active Session Badge (only contextual dashboard button, no profile button on home) -->
                 <?php if ($customer_logged_in): ?>
                     <a href="customer/dashboard.php" class="btn btn-outline-info btn-sm fw-bold">
-                        <i class="bi bi-person-circle me-1"></i> <?= $customer_name ?>
+                        <i class="bi bi-speedometer2 me-1"></i> <?= $customer_name ?>
                     </a>
                 <?php endif; ?>
 
@@ -311,37 +330,38 @@ $admin_username     = $admin_logged_in ? htmlspecialchars($_SESSION['admin_usern
     <main class="gateway-section">
         <div class="container" style="max-width: 960px;">
             <div class="text-center">
-                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3" style="background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.25); color:var(--cyan-accent); font-size:0.82rem; font-weight:600;">
-                    <i class="bi bi-shield-check"></i> Official Municipal Gateway • Balangoda Urban Council
+                <div class="hero-pill">
+                    <i class="bi bi-shield-check"></i> Official Municipal Gateway &bull; Balangoda Urban Council
                 </div>
                 <h1 class="hero-headline">
                     Municipal Utility <span>Outage &amp; Incident</span> Portal
                 </h1>
                 <p class="hero-lead">
-                    Select your portal below to access utility warning bulletins, submit outage complaints, or manage municipal repair dispatches.
+                    Official real-time outage warnings, scheduled infrastructure maintenance notifications, and emergency utility breakdown reporting for Balangoda.
                 </p>
             </div>
 
-            <!-- Two Clean Gateway Cards -->
-            <div class="row g-4">
-                <!-- 1. Citizen & Resident Services Card -->
+            <!-- Two Side-by-Side Unified Doorway Cards -->
+            <div class="row g-4 justify-content-center">
+                <!-- 1. Resident Portal Card -->
                 <div class="col-md-6">
                     <div class="gateway-card resident-gateway">
+                        <div class="gateway-card-accent"></div>
                         <div>
                             <div class="card-icon-wrap resident-icon-wrap">
                                 <i class="bi bi-people-fill"></i>
                             </div>
-                            <h3>Citizen &amp; Resident Services</h3>
-                            <p>For Balangoda residents and local property owners. Access live outage bulletins, lodge water/power/road failure reports, and track repair status.</p>
+                            <h3>Resident Portal</h3>
+                            <p>For citizens and local residents of Balangoda to track ongoing utility outages, submit incident complaints, and monitor restoration progress.</p>
                         </div>
 
                         <div>
                             <?php if ($customer_logged_in): ?>
-                                <div class="active-session-banner">
+                                <div class="session-banner resident-banner">
                                     <span><i class="bi bi-check-circle-fill me-1"></i> Signed in as <strong><?= $customer_name ?></strong></span>
-                                    <a href="logout.php" class="text-white-50 text-decoration-none small">Sign Out</a>
+                                    <a href="logout.php?role=customer" class="banner-sign-out">Sign Out</a>
                                 </div>
-                                <div class="d-grid gap-2">
+                                <div class="d-grid">
                                     <a href="customer/dashboard.php" class="btn-gateway-primary">
                                         <i class="bi bi-speedometer2 me-2"></i> Enter Resident Dashboard
                                     </a>
@@ -363,6 +383,7 @@ $admin_username     = $admin_logged_in ? htmlspecialchars($_SESSION['admin_usern
                 <!-- 2. Administrative Console Card -->
                 <div class="col-md-6">
                     <div class="gateway-card admin-gateway">
+                        <div class="gateway-card-accent"></div>
                         <div>
                             <div class="card-icon-wrap admin-icon-wrap">
                                 <i class="bi bi-shield-lock-fill"></i>
@@ -373,11 +394,11 @@ $admin_username     = $admin_logged_in ? htmlspecialchars($_SESSION['admin_usern
 
                         <div>
                             <?php if ($admin_logged_in): ?>
-                                <div class="active-admin-banner">
+                                <div class="session-banner admin-banner">
                                     <span><i class="bi bi-shield-lock-fill me-1"></i> Admin Active: <strong><?= $admin_username ?></strong></span>
-                                    <a href="logout.php" class="text-white-50 text-decoration-none small">Sign Out</a>
+                                    <a href="logout.php?role=admin" class="banner-sign-out">Sign Out</a>
                                 </div>
-                                <div class="d-grid gap-2">
+                                <div class="d-grid">
                                     <a href="admin/dashboard.php" class="btn-gateway-admin">
                                         <i class="bi bi-sliders me-2"></i> Enter Admin Dashboard
                                     </a>
