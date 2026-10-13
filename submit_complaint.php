@@ -5,7 +5,7 @@ session_start();
 
 // Strict Auth Guard: Customer account and login required to lodge complaints
 if (!isset($_SESSION['customer_id'])) {
-    header("Location: login.php?role=customer&msg=login_required&redirect=" . urlencode('submit_complaint.php'));
+    header("Location: customer/login_page.php?msg=login_required&redirect=" . urlencode('../submit_complaint.php'));
     exit();
 }
 
@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_complaint'])) {
     <!-- Top Navigation Header -->
     <nav class="navbar navbar-dark bg-dark shadow-sm">
         <div class="container-fluid px-4">
-            <a class="navbar-brand fw-bold text-decoration-none" href="index.php">← Back to Outage Warnings</a>
+            <a class="navbar-brand fw-bold text-decoration-none" href="customer/dashboard.php">← Back to Resident Dashboard</a>
             <div class="d-flex align-items-center gap-2">
                 <span class="text-white">Resident Portal - Submit Issue</span>
                 <?php if ($cust_logged): ?>

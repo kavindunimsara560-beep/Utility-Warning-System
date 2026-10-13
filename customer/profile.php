@@ -1,7 +1,7 @@
 <?php
 session_start();
 if (!isset($_SESSION['customer_id'])) {
-    header("Location: ../login.php?role=customer&msg=login_required");
+    header("Location: login_page.php?msg=login_required");
     exit();
 }
 
@@ -21,7 +21,7 @@ $crec->close();
 
 if (!$cdata) {
     session_destroy();
-    header("Location: ../login.php?role=customer");
+    header("Location: login_page.php");
     exit();
 }
 
@@ -160,10 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <i class="bi bi-speedometer2"></i>
                     <span class="d-none d-sm-inline">Dashboard</span>
                 </a>
-                <a href="../index.php" class="nav-btn">
-                    <i class="bi bi-house"></i>
-                    <span class="d-none d-sm-inline">Public Site</span>
-                </a>
+
                 <a href="logout.php" class="nav-btn danger">
                     <i class="bi bi-box-arrow-right"></i>
                     <span class="d-none d-sm-inline">Logout</span>

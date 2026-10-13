@@ -352,10 +352,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
     <?php endif; ?>
 
     <div class="signin-link">
-        Already have an account? <a href="login.php">Sign in here →</a>
-    </div>
-    <div class="signin-link mt-1">
-        <a href="../index.php" style="color:#475569;">← Back to Public Portal</a>
+        Already have an account? <a href="login_page.php">Sign in here →</a>
     </div>
 </div>
 

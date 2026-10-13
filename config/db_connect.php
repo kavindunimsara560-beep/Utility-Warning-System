@@ -21,11 +21,13 @@ if ($is_local) {
         ['host' => 'localhost', 'user' => 'root', 'pass' => '', 'db' => 'balangoda_utility_warnings', 'port' => 3308],
     ];
 
+    $active_cfg = null;
     foreach ($local_configs as $cfg) {
         try {
             $test_conn = @new mysqli($cfg['host'], $cfg['user'], $cfg['pass'], $cfg['db'], $cfg['port']);
             if (!$test_conn->connect_error) {
                 $conn = $test_conn;
+                $active_cfg = $cfg;
                 break;
             }
         } catch (Throwable $e) {
@@ -36,13 +38,19 @@ if ($is_local) {
 
 // Fallback to remote production database (e.g. InfinityFree hosting)
 if (!$conn) {
-    $remote_host = "sql106.infinityfree.com";
-    $remote_user = "if0_42904484";
-    $remote_pass = "K1@7n#U5";
-    $remote_dbname = "if0_42904484_warnings";
+    $remote_cfg = [
+        'host' => 'sql106.infinityfree.com',
+        'user' => 'if0_42904484',
+        'pass' => 'K1@7n#U5',
+        'db'   => 'if0_42904484_warnings',
+        'port' => 3306
+    ];
 
     try {
-        $conn = @new mysqli($remote_host, $remote_user, $remote_pass, $remote_dbname);
+        $conn = @new mysqli($remote_cfg['host'], $remote_cfg['user'], $remote_cfg['pass'], $remote_cfg['db'], $remote_cfg['port']);
+        if (!$conn->connect_error) {
+            $active_cfg = $remote_cfg;
+        }
     } catch (Throwable $e) {
         // Handled below
     }
@@ -59,4 +67,23 @@ if (!$conn || $conn->connect_error) {
 
 $conn->set_charset("utf8mb4");
 @$conn->query("SET time_zone = '+05:30'");
+
+// Modern PDO instance for prepared transactions, batch imports & registry verification
+$pdo = null;
+if (!empty($active_cfg)) {
+    try {
+        $dsn = "mysql:host=" . $active_cfg['host'] . ";dbname=" . $active_cfg['db'] . ";charset=utf8mb4";
+        if (!empty($active_cfg['port'])) {
+            $dsn .= ";port=" . $active_cfg['port'];
+        }
+        $pdo = new PDO($dsn, $active_cfg['user'], $active_cfg['pass'], [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+        ]);
+        @$pdo->exec("SET time_zone = '+05:30'");
+    } catch (Throwable $pe) {
+        error_log("PDO initialization notice: " . $pe->getMessage());
+    }
+}
 ?>

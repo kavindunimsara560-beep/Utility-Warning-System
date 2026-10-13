@@ -3,7 +3,7 @@ session_start();
 
 // Auth guard — customers only
 if (!isset($_SESSION['customer_id'])) {
-    header("Location: login.php?role=customer&msg=login_required&redirect=" . urlencode('report.php'));
+    header("Location: customer/login_page.php?msg=login_required&redirect=" . urlencode('../report.php'));
     exit();
 }
 
@@ -71,7 +71,7 @@ if (!empty($searchQuery)) {
     <!-- Top Navigation Header -->
     <nav class="navbar navbar-dark bg-dark shadow-sm">
         <div class="container-fluid px-4">
-            <a class="navbar-brand fw-bold text-decoration-none" href="index.php">← Back to Outage Warnings</a>
+            <a class="navbar-brand fw-bold text-decoration-none" href="customer/dashboard.php">← Back to Resident Dashboard</a>
             <div class="d-flex align-items-center gap-2">
                 <span class="text-white">Resident Portal - My Complaints</span>
                 <a href="customer/dashboard.php" class="btn btn-outline-info btn-sm">

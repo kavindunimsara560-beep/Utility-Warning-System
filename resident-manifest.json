@@ -1,0 +1,50 @@
+{
+  "name": "Balangoda Resident Portal",
+  "short_name": "Resident Portal",
+  "description": "Official Balangoda Municipal Utility Outage Warnings & Complaint Tracking for Residents",
+  "start_url": "/Web_base_project/customer/login_page.php",
+  "scope": "/Web_base_project/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "lang": "en",
+  "categories": ["utilities", "government"],
+  "icons": [
+    {
+      "src": "./icons/resident-icon-512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "My Dashboard",
+      "short_name": "Dashboard",
+      "description": "Go to your resident dashboard",
+      "url": "/Web_base_project/customer/dashboard.php",
+      "icons": [{"src": "./icons/resident-icon-512.jpg", "sizes": "512x512"}]
+    },
+    {
+      "name": "Report an Issue",
+      "short_name": "Report",
+      "description": "Submit a utility complaint",
+      "url": "/Web_base_project/submit_complaint.php",
+      "icons": [{"src": "./icons/resident-icon-512.jpg", "sizes": "512x512"}]
+    },
+    {
+      "name": "Track Complaint",
+      "short_name": "Track",
+      "description": "Check your complaint status",
+      "url": "/Web_base_project/report.php",
+      "icons": [{"src": "./icons/resident-icon-512.jpg", "sizes": "512x512"}]
+    }
+  ]
+}

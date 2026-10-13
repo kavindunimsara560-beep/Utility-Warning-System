@@ -1,0 +1,43 @@
+{
+  "name": "Admin Console — Balangoda",
+  "short_name": "Admin Console",
+  "description": "Authorized municipal staff console for managing utility warnings, residents and system operations.",
+  "start_url": "/Web_base_project/admin/login_page.php",
+  "scope": "/Web_base_project/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#080500",
+  "theme_color": "#d97706",
+  "lang": "en",
+  "categories": ["utilities", "government"],
+  "icons": [
+    {
+      "src": "./icons/admin-icon-512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Admin Dashboard",
+      "short_name": "Dashboard",
+      "description": "Go to admin dashboard",
+      "url": "/Web_base_project/admin/dashboard.php",
+      "icons": [{"src": "./icons/admin-icon-512.jpg", "sizes": "512x512"}]
+    },
+    {
+      "name": "Post Warning",
+      "short_name": "Warning",
+      "description": "Post a new utility warning",
+      "url": "/Web_base_project/admin/dashboard.php?action=new_warning",
+      "icons": [{"src": "./icons/admin-icon-512.jpg", "sizes": "512x512"}]
+    }
+  ]
+}

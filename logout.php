@@ -13,7 +13,7 @@ if ($role === 'customer') {
     if (($_SESSION['active_role'] ?? '') === 'customer') {
         unset($_SESSION['active_role']);
     }
-    header("Location: index.php");
+    header("Location: customer/login_page.php?msg=logged_out");
     exit();
 } elseif ($role === 'admin') {
     unset(
