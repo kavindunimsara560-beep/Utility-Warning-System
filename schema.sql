@@ -48,3 +48,15 @@ CREATE TABLE IF NOT EXISTS `residents` (
     ON DELETE SET NULL 
     ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Table 3: allowed_admin_emails
+-- Standalone Whitelist for Administrator Self-Registration
+CREATE TABLE IF NOT EXISTS `allowed_admin_emails` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `email` VARCHAR(150) UNIQUE NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Seed with initial authorized admin emails:
+INSERT IGNORE INTO `allowed_admin_emails` (`email`) VALUES 
+('kavindunimsara560@gmail.com'),
+('admin@balangoda.gov.lk');

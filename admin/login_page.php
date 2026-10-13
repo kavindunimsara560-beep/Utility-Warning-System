@@ -19,10 +19,37 @@ $admin_error   = '';
 $admin_success = '';
 $admin_tab     = isset($_GET['tab']) && $_GET['tab'] === 'signup' ? 'signup' : 'signin';
 
-// Whitelist for admin self-registration
-$ALLOWED_ADMIN_EMAILS = [
-    'kavindunimsara560@gmail.com',
-];
+// Standalone Database-Driven Whitelist Verification
+function is_admin_email_whitelisted(string $email, $conn, $pdo = null): bool {
+    $email = strtolower(trim($email));
+    if (empty($email)) return false;
+
+    // 1. Query via PDO if available
+    if ($pdo instanceof PDO) {
+        try {
+            $stmt = $pdo->prepare("SELECT id FROM allowed_admin_emails WHERE LOWER(email) = LOWER(:email) LIMIT 1");
+            $stmt->execute([':email' => $email]);
+            return (bool)$stmt->fetch();
+        } catch (Throwable $e) {}
+    }
+
+    // 2. Query via MySQLi
+    if ($conn instanceof mysqli) {
+        try {
+            $stmt = $conn->prepare("SELECT id FROM allowed_admin_emails WHERE LOWER(email) = LOWER(?) LIMIT 1");
+            if ($stmt) {
+                $stmt->bind_param("s", $email);
+                $stmt->execute();
+                $stmt->store_result();
+                $exists = ($stmt->num_rows > 0);
+                $stmt->close();
+                return $exists;
+            }
+        } catch (Throwable $e) {}
+    }
+
+    return false;
+}
 
 // ── Handle Admin Sign In ──────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -85,8 +112,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $admin_error = "All fields are required to register an administrative account.";
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $admin_error = "Please enter a valid email address.";
-        } elseif (!in_array($email, array_map('strtolower', $ALLOWED_ADMIN_EMAILS), true)) {
-            $admin_error = "Access Restricted: The email '" . htmlspecialchars($email) . "' is not authorized. Only pre-approved municipal staff may register.";
+        } elseif (!is_admin_email_whitelisted($email, $conn, $pdo ?? null)) {
+            $admin_error = "Access Restricted: The email '" . htmlspecialchars($email) . "' is not authorized. Only pre-approved municipal staff in the official administrator whitelist may register.";
         } elseif (!preg_match('/^[a-zA-Z0-9_]{3,30}$/', $username)) {
             $admin_error = "Username must be 3–30 characters (letters, numbers, underscores).";
         } elseif (strlen($password) < 6) {
@@ -328,8 +355,11 @@ tailwind.config = {
 
         <!-- ── SIGN UP TAB ── -->
         <div id="panel-signup" class="tab-panel <?= $admin_tab === 'signup' ? 'active' : '' ?>">
-          <div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-3 text-xs mb-4">
-            <span class="font-bold">Staff Verification:</span> Registration is limited to approved municipal addresses (<code>kavindunimsara560@gmail.com</code>).
+          <div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-3 text-xs mb-4 flex items-start gap-2">
+            <i data-lucide="shield-check" class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5"></i>
+            <div>
+              <span class="font-bold">Staff Whitelist Enforced:</span> Registration is restricted to pre-authorized municipal staff email addresses in the official administrator whitelist.
+            </div>
           </div>
 
           <form method="POST" action="" novalidate>

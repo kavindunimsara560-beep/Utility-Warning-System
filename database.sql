@@ -76,3 +76,14 @@ CREATE TABLE IF NOT EXISTS `customers` (
   `verify_token`        VARCHAR(64)  DEFAULT NULL,
   `created_at`          TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 6. Allowed Admin Emails (Standalone Whitelist for Admin Self-Registration)
+CREATE TABLE IF NOT EXISTS `allowed_admin_emails` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `email` VARCHAR(150) UNIQUE NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Seed with initial authorized admin emails:
+INSERT IGNORE INTO `allowed_admin_emails` (`email`) VALUES 
+('kavindunimsara560@gmail.com'),
+('admin@balangoda.gov.lk');
