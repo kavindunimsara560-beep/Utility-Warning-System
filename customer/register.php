@@ -8,430 +8,620 @@ if (isset($_SESSION['customer_id'])) {
 
 require_once '../config/db_connect.php';
 
-$errors   = [];
-$success  = '';
-$verify_url = '';
-$form = ['full_name'=>'','phone'=>'','email'=>'','address'=>'','elec_bill'=>'','water_bill'=>''];
+$errors = [];
+$form = [
+    'full_name'           => '',
+    'phone_number'        => '',
+    'email'               => '',
+    'physical_address'    => '',
+    'electricity_bill_no' => '',
+    'water_bill_no'       => ''
+];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
-    // Collect
-    $form['full_name']  = trim($_POST['full_name']  ?? '');
-    $form['phone']      = trim($_POST['phone']       ?? '');
-    $form['email']      = trim($_POST['email']       ?? '');
-    $form['address']    = trim($_POST['address']     ?? '');
-    $form['elec_bill']  = trim($_POST['elec_bill']   ?? '');
-    $form['water_bill'] = trim($_POST['water_bill']  ?? '');
-    $password           = $_POST['password']          ?? '';
-    $password_confirm   = $_POST['password_confirm'] ?? '';
+    // 1. Collect & sanitize inputs
+    $form['full_name']           = trim($_POST['full_name'] ?? '');
+    $form['phone_number']        = trim($_POST['phone_number'] ?? '');
+    $form['email']               = trim($_POST['email'] ?? '');
+    $form['physical_address']    = trim($_POST['physical_address'] ?? '');
+    $form['electricity_bill_no'] = trim($_POST['electricity_bill_no'] ?? '');
+    $form['water_bill_no']       = trim($_POST['water_bill_no'] ?? '');
+    $password                    = $_POST['password'] ?? '';
+    $password_confirm            = $_POST['password_confirm'] ?? '';
 
-    // Validate
-    if (empty($form['full_name'])) $errors[] = "Full name is required.";
-    if (empty($form['phone'])) {
-        $errors[] = "Phone number is required.";
-    } elseif (!preg_match('/^(\+94|0)[0-9]{9}$/', $form['phone'])) {
-        $errors[] = "Invalid Sri Lankan phone number. Use +94XXXXXXXXX or 07XXXXXXXX format.";
+    // 2. Validate Personal Info
+    if (empty($form['full_name'])) {
+        $errors[] = "Full Name is required.";
     }
+
+    if (empty($form['phone_number'])) {
+        $errors[] = "Phone Number is required.";
+    } elseif (!preg_match('/^(\+94|0)?[0-9]{9,10}$/', str_replace([' ', '-'], '', $form['phone_number']))) {
+        $errors[] = "Please provide a valid phone number (e.g., 0712345678 or +94712345678).";
+    }
+
     if (empty($form['email'])) {
         $errors[] = "Email address is required.";
     } elseif (!filter_var($form['email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = "Invalid email address format.";
     }
-    if (empty($form['address'])) $errors[] = "Physical address is required.";
-    if (empty($form['elec_bill']) && empty($form['water_bill'])) {
-        $errors[] = "Please provide at least one utility bill number (Electricity or Water).";
+
+    if (empty($form['physical_address'])) {
+        $errors[] = "Physical address is required.";
     }
+
+    // 3. Validate Utility Bill Numbers (Enforce at least one)
+    if (empty($form['electricity_bill_no']) && empty($form['water_bill_no'])) {
+        $errors[] = "Please enter at least one utility bill number (Electricity or Water) to verify your residency.";
+    }
+
+    // 4. Validate Passwords
     if (strlen($password) < 8) {
         $errors[] = "Password must be at least 8 characters long.";
     } elseif ($password !== $password_confirm) {
         $errors[] = "Passwords do not match.";
     }
 
-    // Check email uniqueness
+    // 5. Check if email already registered in residents or customers
     if (empty($errors)) {
-        $chk = $conn->prepare("SELECT customer_id FROM customers WHERE email = ?");
-        $chk->bind_param("s", $form['email']);
-        $chk->execute();
-        $chk->store_result();
-        if ($chk->num_rows > 0) $errors[] = "An account with this email already exists. Please sign in.";
-        $chk->close();
+        try {
+            $chk_email = $pdo->prepare("SELECT id FROM residents WHERE email = :email LIMIT 1");
+            $chk_email->execute([':email' => $form['email']]);
+            if ($chk_email->fetch()) {
+                $errors[] = "An account with this email address already exists. Please sign in.";
+            } else {
+                // Secondary check in customers table
+                $chk_cust = $pdo->prepare("SELECT customer_id FROM customers WHERE email = :email LIMIT 1");
+                $chk_cust->execute([':email' => $form['email']]);
+                if ($chk_cust->fetch()) {
+                    $errors[] = "An account with this email address already exists. Please sign in.";
+                }
+            }
+        } catch (Throwable $e) {
+            $errors[] = "Verification check error: " . $e->getMessage();
+        }
     }
 
-    // Insert
+    // 6. Council Registry Verification Logic (Enforce Before Insertion)
+    $matched_registry = null;
     if (empty($errors)) {
-        $hash  = password_hash($password, PASSWORD_BCRYPT);
-        $token = bin2hex(random_bytes(32));
-        $ins   = $conn->prepare("INSERT INTO customers (full_name, phone, email, address, electricity_bill_no, water_bill_no, password_hash, verify_token) VALUES (?,?,?,?,?,?,?,?)");
-        $ins->bind_param("ssssssss",
-            $form['full_name'], $form['phone'], $form['email'], $form['address'],
-            $form['elec_bill'], $form['water_bill'], $hash, $token
-        );
-        if ($ins->execute()) {
-            $ins->close();
+        try {
+            $registry_query = "
+                SELECT * FROM council_registry 
+                WHERE (electricity_account_no = :ceb AND :ceb_chk != '')
+                   OR (water_account_no = :water AND :water_chk != '')
+                LIMIT 1
+            ";
+            $reg_stmt = $pdo->prepare($registry_query);
+            $reg_stmt->execute([
+                ':ceb'       => $form['electricity_bill_no'],
+                ':ceb_chk'   => $form['electricity_bill_no'],
+                ':water'     => $form['water_bill_no'],
+                ':water_chk' => $form['water_bill_no']
+            ]);
+            $matched_registry = $reg_stmt->fetch();
 
-            // Build verification URL safely considering subdirectory
-            $scheme     = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-            $host       = $_SERVER['HTTP_HOST'] ?? 'localhost';
-            $dir        = rtrim(dirname($_SERVER['PHP_SELF']), '/\\');
-            $verify_url = $scheme . '://' . $host . $dir . '/verify.php?token=' . urlencode($token);
+            if (!$matched_registry) {
+                // If no record matches
+                $errors[] = "Verification failed: The entered Electricity or Water account number was not found in the Balangoda Municipal Registry. Please check your bill.";
+            } elseif ($matched_registry['registered_status'] === 'claimed') {
+                // If a record is matched but registered_status === 'claimed'
+                $errors[] = "This utility account is already linked to an existing resident portal account.";
+            }
+        } catch (Throwable $e) {
+            $errors[] = "Registry database error: " . $e->getMessage();
+        }
+    }
 
-            // Attempt real mail (works on production with SMTP)
-            $to      = $form['email'];
-            $subject = 'Verify your Balangoda Utility account';
-            $body    = "Hello " . $form['full_name'] . ",\n\n"
-                     . "Please verify your email by clicking the link below:\n\n"
-                     . $verify_url . "\n\n"
-                     . "This link expires after use.\n\n"
-                     . "— Balangoda Municipal Utility System";
-            $headers = "From: noreply@balangoda-utility.lk\r\nX-Mailer: PHP/" . phpversion();
-            @mail($to, $subject, $body, $headers); // Silenced — may fail on localhost
+    // 7. On Success: Database Transaction Insertion & Claiming
+    if (empty($errors) && $matched_registry) {
+        $password_hash = password_hash($password, PASSWORD_BCRYPT);
+        $registry_id   = (int)$matched_registry['id'];
 
-            $success = "Account created! Please verify your email to activate it.";
-            $form    = ['full_name'=>'','phone'=>'','email'=>'','address'=>'','elec_bill'=>'','water_bill'=>''];
-        } else {
-            $errors[] = "Registration failed: " . $conn->error;
+        $pdo->beginTransaction();
+        try {
+            // A. Insert resident into `residents` table with verification_status = 'verified'
+            $ins_resident = $pdo->prepare("
+                INSERT INTO residents (
+                    registry_id,
+                    full_name,
+                    email,
+                    phone_number,
+                    physical_address,
+                    electricity_account_no,
+                    water_account_no,
+                    password_hash,
+                    verification_status
+                ) VALUES (
+                    :registry_id,
+                    :full_name,
+                    :email,
+                    :phone_number,
+                    :physical_address,
+                    :electricity_account_no,
+                    :water_account_no,
+                    :password_hash,
+                    'verified'
+                )
+            ");
+            $ins_resident->execute([
+                ':registry_id'            => $registry_id,
+                ':full_name'              => $form['full_name'],
+                ':email'                  => $form['email'],
+                ':phone_number'           => $form['phone_number'],
+                ':physical_address'       => $form['physical_address'],
+                ':electricity_account_no' => $form['electricity_bill_no'] ?: null,
+                ':water_account_no'       => $form['water_bill_no'] ?: null,
+                ':password_hash'          => $password_hash
+            ]);
+
+            // B. Also synchronize into `customers` table for backward-compatible dashboard authentication
+            $ins_customer = $pdo->prepare("
+                INSERT INTO customers (
+                    full_name,
+                    phone,
+                    email,
+                    address,
+                    electricity_bill_no,
+                    water_bill_no,
+                    password_hash,
+                    email_verified
+                ) VALUES (
+                    :full_name,
+                    :phone,
+                    :email,
+                    :address,
+                    :elec,
+                    :water,
+                    :password_hash,
+                    1
+                )
+                ON DUPLICATE KEY UPDATE 
+                    password_hash = VALUES(password_hash),
+                    email_verified = 1
+            ");
+            $ins_customer->execute([
+                ':full_name'     => $form['full_name'],
+                ':phone'         => $form['phone_number'],
+                ':email'         => $form['email'],
+                ':address'       => $form['physical_address'],
+                ':elec'          => $form['electricity_bill_no'] ?: null,
+                ':water'         => $form['water_bill_no'] ?: null,
+                ':password_hash' => $password_hash
+            ]);
+
+            // C. Mark matched council_registry row as `registered_status = 'claimed'`
+            $claim_stmt = $pdo->prepare("
+                UPDATE council_registry 
+                SET registered_status = 'claimed' 
+                WHERE id = :id
+            ");
+            $claim_stmt->execute([':id' => $registry_id]);
+
+            // Commit atomic transaction
+            $pdo->commit();
+
+            // Redirect to customer/login_page.php with success flash message
+            $_SESSION['flash_success'] = "Account successfully verified and registered! Please sign in.";
+            header("Location: login_page.php?msg=registered");
+            exit();
+
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            $errors[] = "Registration failed during database write: " . $e->getMessage();
         }
     }
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-slate-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Account — Balangoda Utility Portal</title>
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#0d6efd">
+    <title>Resident Registration & Verification — Balangoda Municipal Council</title>
+    <meta name="description" content="Register and verify your residency using official CEB Electricity or NWSDB Water bill credentials.">
+    <meta name="theme-color" content="#2563eb">
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <style>
-        :root {
-            --navy:   #0f172a;
-            --navy2:  #1e293b;
-            --blue:   #3b82f6;
-            --blue2:  #0d6efd;
-            --cyan:   #38bdf8;
-            --accent: #6366f1;
-        }
-        * { box-sizing: border-box; }
-        body {
-            font-family: 'Outfit', system-ui, sans-serif;
-            background: linear-gradient(135deg, var(--navy) 0%, #1a1040 50%, var(--navy2) 100%);
-            min-height: 100vh;
-            padding: 2rem 1rem;
-        }
-        .page-card {
-            background: rgba(30,41,59,0.85);
-            backdrop-filter: blur(18px);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 20px;
-            max-width: 680px;
-            margin: 0 auto;
-            padding: 2.5rem 2rem;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
-        }
-        .brand-header { text-align: center; margin-bottom: 2rem; }
-        .brand-icon {
-            font-size: 2.8rem;
-            display: inline-block;
-            filter: drop-shadow(0 0 16px rgba(56,189,248,0.7));
-            animation: float 3s ease-in-out infinite;
-        }
-        @keyframes float {
-            0%,100% { transform: translateY(0); }
-            50%      { transform: translateY(-6px); }
-        }
-        .brand-header h1 { color: #f8fafc; font-size: 1.55rem; font-weight: 800; margin: 0.5rem 0 0; }
-        .brand-header p  { color: #94a3b8; font-size: 0.88rem; margin: 0; }
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 
-        .form-label { color: #cbd5e1; font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; }
-        .form-control, .form-select {
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 10px;
-            color: #f1f5f9;
-            font-family: 'Outfit', sans-serif;
-            transition: border-color .2s, box-shadow .2s;
-            padding: 0.55rem 0.9rem;
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    sans: ['Inter', 'system-ui', 'sans-serif'],
+                    display: ['Outfit', 'sans-serif'],
+                },
+                colors: {
+                    brand: {
+                        50:  '#eff6ff',
+                        100: '#dbeafe',
+                        500: '#3b82f6',
+                        600: '#2563eb',
+                        700: '#1d4ed8',
+                        900: '#1e3a8a'
+                    }
+                }
+            }
         }
-        .form-control:focus, .form-select:focus {
-            background: rgba(255,255,255,0.1);
-            border-color: var(--cyan);
-            box-shadow: 0 0 0 3px rgba(56,189,248,0.18);
-            color: #fff;
-            outline: none;
-        }
-        .form-control::placeholder { color: #475569; }
-        .form-control.is-invalid { border-color: #ef4444 !important; }
-
-        .section-label {
-            color: var(--cyan);
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            border-bottom: 1px solid rgba(56,189,248,0.2);
-            padding-bottom: 6px;
-            margin: 1.5rem 0 1rem;
-        }
-
-        .bill-note { color: #64748b; font-size: 0.78rem; margin-top: 4px; }
-        .bill-required { color: #f59e0b; font-weight: 600; }
-
-        .btn-register {
-            background: linear-gradient(135deg, var(--blue2), var(--accent));
-            border: none;
-            border-radius: 12px;
-            color: #fff;
-            font-family: 'Outfit', sans-serif;
-            font-size: 1rem;
-            font-weight: 700;
-            padding: 0.75rem;
-            width: 100%;
-            transition: all .2s;
-            box-shadow: 0 6px 18px rgba(99,102,241,.35);
-        }
-        .btn-register:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(99,102,241,.45); color:#fff; }
-
-        .alert-glass {
-            background: rgba(239,68,68,0.12);
-            border: 1px solid rgba(239,68,68,0.35);
-            border-radius: 12px;
-            color: #fca5a5;
-            padding: 1rem 1.2rem;
-        }
-        .alert-success-glass {
-            background: rgba(34,197,94,0.12);
-            border: 1px solid rgba(34,197,94,0.35);
-            border-radius: 12px;
-            color: #86efac;
-            padding: 1rem 1.2rem;
-        }
-        .verify-link-box {
-            background: rgba(59,130,246,0.12);
-            border: 1px solid rgba(59,130,246,0.35);
-            border-radius: 12px;
-            padding: 1rem 1.2rem;
-            margin-top: 1rem;
-            word-break: break-all;
-        }
-        .verify-link-box a { color: var(--cyan); font-weight: 600; }
-        .divider { border-color: rgba(255,255,255,0.08); margin: 1.5rem 0; }
-        .signin-link { color: #94a3b8; font-size: 0.88rem; text-align: center; margin-top: 1.2rem; }
-        .signin-link a { color: var(--cyan); font-weight: 600; text-decoration: none; }
-        .pw-toggle { cursor: pointer; }
-
-        /* Password strength bar */
-        .pw-strength-bar { height: 4px; border-radius: 2px; transition: width .3s, background .3s; width: 0; }
-    </style>
+    }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
-<body>
-<div class="page-card">
-    <div class="brand-header">
-        <span class="brand-icon">⚡</span>
-        <h1>Create Your Account</h1>
-        <p>Balangoda Municipal Utility Warning & Complaint Portal</p>
+<body class="min-h-full flex flex-col font-sans text-slate-800 bg-slate-50 antialiased selection:bg-blue-600 selection:text-white">
+
+    <!-- Ambient Subtle Backdrop Accents -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-blue-500/10 rounded-full blur-[120px]"></div>
+        <div class="absolute -bottom-32 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-cyan-400/10 rounded-full blur-[100px]"></div>
     </div>
 
-    <?php if (!empty($errors)): ?>
-    <div class="alert-glass mb-3">
-        <strong><i class="bi bi-exclamation-triangle-fill me-2"></i>Please fix the following:</strong>
-        <ul class="mb-0 mt-2 ps-3">
-            <?php foreach ($errors as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?>
-        </ul>
-    </div>
-    <?php endif; ?>
-
-    <?php if ($success): ?>
-    <div class="alert-success-glass mb-3">
-        <strong><i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars($success) ?></strong>
-    </div>
-    <?php if ($verify_url): ?>
-    <div class="verify-link-box">
-        <p class="mb-2" style="color:#94a3b8;font-size:.85rem;">
-            <i class="bi bi-info-circle me-1"></i>
-            <strong style="color:#f59e0b;">Running on localhost?</strong> Click the link below to verify your email instantly:
-        </p>
-        <a href="<?= htmlspecialchars($verify_url) ?>" id="verifyLink">
-            <i class="bi bi-shield-check me-1"></i><?= htmlspecialchars($verify_url) ?>
-        </a>
-        <div class="mt-2" style="color:#64748b;font-size:.78rem;">On a production server, this link will be emailed to you automatically.</div>
-    </div>
-    <?php endif; ?>
-    <?php else: ?>
-
-    <form method="POST" action="register.php" novalidate id="registerForm">
-
-        <!-- Personal Info -->
-        <div class="section-label"><i class="bi bi-person me-1"></i> Personal Information</div>
-
-        <div class="mb-3">
-            <label class="form-label">Full Name <span class="text-danger">*</span></label>
-            <input type="text" name="full_name" class="form-control" placeholder="e.g. Kavindu Perera"
-                   value="<?= htmlspecialchars($form['full_name']) ?>" required autocomplete="name">
+    <!-- Header Navigation -->
+    <header class="w-full bg-[#091322] border-b border-cyan-500/25 px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-lg shadow-blue-950/20">
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center text-white shadow-sm ring-1 ring-cyan-400/30">
+                <i data-lucide="zap" class="w-4 h-4 text-white"></i>
+            </div>
+            <div>
+                <span class="text-sm font-bold text-white tracking-wide">
+                    Balangoda <span class="text-cyan-400">Urban Council</span>
+                </span>
+                <span class="hidden sm:inline text-xs text-slate-400 ml-2">&bull; Municipal Utility System</span>
+            </div>
         </div>
+        <div class="flex items-center gap-2">
+            <a href="login_page.php" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-cyan-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 border border-cyan-500/30 transition-all">
+                <i data-lucide="log-in" class="w-3.5 h-3.5 text-cyan-400"></i>
+                <span>Sign In</span>
+            </a>
+        </div>
+    </header>
 
-        <div class="row g-3 mb-3">
-            <div class="col-md-6">
-                <label class="form-label">Phone Number <span class="text-danger">*</span></label>
-                <div class="input-group">
-                    <span class="input-group-text" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-right:none;color:#94a3b8;">
-                        <i class="bi bi-telephone"></i>
-                    </span>
-                    <input type="tel" name="phone" id="phoneInput" class="form-control" style="border-left:none;"
-                           placeholder="+94771234567 or 0771234567"
-                           value="<?= htmlspecialchars($form['phone']) ?>" required>
+    <!-- Main Registration Container -->
+    <main class="flex-1 flex items-center justify-center px-4 py-8 sm:py-12">
+        <div class="w-full max-w-xl">
+
+            <!-- Card Container -->
+            <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-xl shadow-blue-950/5 relative">
+
+                <!-- Header Block -->
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 mb-3 shadow-inner">
+                        <i data-lucide="shield-check" class="w-7 h-7"></i>
+                    </div>
+                    <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 uppercase tracking-wider mb-2">
+                        Official Verification
+                    </div>
+                    <h1 class="font-display text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Resident Portal Registration</h1>
+                    <p class="text-slate-500 text-xs sm:text-sm mt-1.5">
+                        Verify your residency using your municipal electricity or water account number to activate access.
+                    </p>
                 </div>
-                <div class="bill-note">Format: +94XXXXXXXXX or 07XXXXXXXX</div>
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">Email Address <span class="text-danger">*</span></label>
-                <input type="email" name="email" class="form-control" placeholder="you@example.com"
-                       value="<?= htmlspecialchars($form['email']) ?>" required autocomplete="email">
-            </div>
-        </div>
 
-        <div class="mb-3">
-            <label class="form-label">Physical Address <span class="text-danger">*</span></label>
-            <textarea name="address" class="form-control" rows="2"
-                      placeholder="House No., Street, Balangoda..."><?= htmlspecialchars($form['address']) ?></textarea>
-        </div>
-
-        <!-- Utility Bills -->
-        <div class="section-label"><i class="bi bi-receipt me-1"></i> Utility Bill Numbers <span class="bill-required">*</span></div>
-        <p class="bill-note mb-3"><i class="bi bi-info-circle me-1"></i>At least <strong style="color:#f1f5f9;">one</strong> bill number is required to verify your residency.</p>
-
-        <div class="row g-3 mb-3">
-            <div class="col-md-6">
-                <label class="form-label"><i class="bi bi-lightning-charge me-1" style="color:#fbbf24;"></i> Electricity Bill No.</label>
-                <input type="text" name="elec_bill" id="elecBill" class="form-control" placeholder="e.g. EB-0012345"
-                       value="<?= htmlspecialchars($form['elec_bill']) ?>">
-            </div>
-            <div class="col-md-6">
-                <label class="form-label"><i class="bi bi-droplet me-1" style="color:#38bdf8;"></i> Water Bill No.</label>
-                <input type="text" name="water_bill" id="waterBill" class="form-control" placeholder="e.g. WB-0067890"
-                       value="<?= htmlspecialchars($form['water_bill']) ?>">
-            </div>
-        </div>
-        <div id="billError" class="bill-note" style="color:#ef4444;display:none;">
-            <i class="bi bi-exclamation-triangle me-1"></i>Please enter at least one bill number.
-        </div>
-
-        <!-- Password -->
-        <div class="section-label"><i class="bi bi-lock me-1"></i> Set Password</div>
-
-        <div class="row g-3 mb-3">
-            <div class="col-md-6">
-                <label class="form-label">Password <span class="text-danger">*</span></label>
-                <div class="input-group">
-                    <input type="password" name="password" id="pwField" class="form-control"
-                           placeholder="Min. 8 characters" required style="border-right:none;">
-                    <button type="button" class="input-group-text pw-toggle" id="togglePw"
-                            style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-left:none;color:#94a3b8;">
-                        <i class="bi bi-eye" id="togglePwIcon"></i>
-                    </button>
+                <!-- Dismissible Error Alert Box -->
+                <?php if (!empty($errors)): ?>
+                <div id="errorAlert" class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm shadow-sm relative animate-fade-in">
+                    <div class="flex items-start gap-3">
+                        <i data-lucide="alert-circle" class="w-5 h-5 flex-shrink-0 text-rose-600 mt-0.5"></i>
+                        <div class="flex-1">
+                            <strong class="font-semibold block mb-1">Please correct the following:</strong>
+                            <ul class="list-disc list-inside space-y-1 text-xs sm:text-sm">
+                                <?php foreach ($errors as $err): ?>
+                                    <li><?= htmlspecialchars($err) ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                        <button type="button" onclick="document.getElementById('errorAlert').remove();" class="text-rose-400 hover:text-rose-600 p-1 rounded-lg transition-colors" aria-label="Dismiss alert">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="mt-1" style="background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;">
-                    <div class="pw-strength-bar" id="pwBar"></div>
+                <?php endif; ?>
+
+                <!-- Registration Form -->
+                <form method="POST" action="register.php" id="registerForm" novalidate class="space-y-6">
+
+                    <!-- SECTION 1: Personal Information -->
+                    <div>
+                        <div class="flex items-center gap-2 pb-2 mb-4 border-b border-slate-200 text-xs font-bold text-blue-700 uppercase tracking-wider">
+                            <i data-lucide="user" class="w-4 h-4"></i>
+                            <span>Personal Information</span>
+                        </div>
+
+                        <div class="space-y-4">
+                            <!-- Full Name -->
+                            <div>
+                                <label for="full_name" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                    Full Name <span class="text-rose-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <i data-lucide="user-check" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                                    <input type="text" id="full_name" name="full_name"
+                                           class="w-full pl-10 pr-4 py-2.5 border border-slate-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/15 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all"
+                                           placeholder="e.g., Anjali Karunaratne"
+                                           value="<?= htmlspecialchars($form['full_name']) ?>" required>
+                                </div>
+                            </div>
+
+                            <!-- Phone Number & Email Address Grid -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="phone_number" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                        Phone Number <span class="text-rose-500">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <i data-lucide="phone" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                                        <input type="tel" id="phone_number" name="phone_number"
+                                               class="w-full pl-10 pr-4 py-2.5 border border-slate-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/15 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all"
+                                               placeholder="0771234567"
+                                               value="<?= htmlspecialchars($form['phone_number']) ?>" required>
+                                    </div>
+                                    <p class="text-[11px] text-slate-400 mt-1">For urgent SMS outage notifications</p>
+                                </div>
+
+                                <div>
+                                    <label for="email" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                        Email Address <span class="text-rose-500">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <i data-lucide="mail" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                                        <input type="email" id="email" name="email"
+                                               class="w-full pl-10 pr-4 py-2.5 border border-slate-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/15 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all"
+                                               placeholder="resident@example.com"
+                                               value="<?= htmlspecialchars($form['email']) ?>" required autocomplete="email">
+                                    </div>
+                                    <p class="text-[11px] text-slate-400 mt-1">Used for portal sign in & receipts</p>
+                                </div>
+                            </div>
+
+                            <!-- Physical Address -->
+                            <div>
+                                <label for="physical_address" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                    Physical Address <span class="text-rose-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <i data-lucide="map-pin" class="absolute left-3.5 top-3 w-4 h-4 text-slate-400"></i>
+                                    <textarea id="physical_address" name="physical_address" rows="2"
+                                              class="w-full pl-10 pr-4 py-2.5 border border-slate-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/15 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all"
+                                              placeholder="House No., Street, Grama Niladhari division, Balangoda..."
+                                              required><?= htmlspecialchars($form['physical_address']) ?></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2: Utility Bill Numbers -->
+                    <div>
+                        <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-200">
+                            <div class="flex items-center gap-2 text-xs font-bold text-blue-700 uppercase tracking-wider">
+                                <i data-lucide="receipt" class="w-4 h-4"></i>
+                                <span>Utility Bill Numbers</span>
+                            </div>
+                            <span class="text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                At least 1 required
+                            </span>
+                        </div>
+
+                        <p class="text-xs text-slate-500 mb-4">
+                            We cross-reference your electricity or water bill account number against the Balangoda Municipal Council Registry to automatically verify your identity.
+                        </p>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Electricity Bill -->
+                            <div>
+                                <label for="electricity_bill_no" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                    <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-500"></i>
+                                    <span>Electricity Bill No.</span>
+                                </label>
+                                <div class="relative">
+                                    <input type="text" id="electricity_bill_no" name="electricity_bill_no"
+                                           class="w-full px-3.5 py-2.5 border border-slate-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/15 rounded-xl text-sm font-mono text-slate-900 placeholder:text-slate-400 outline-none transition-all"
+                                           placeholder="e.g., 5101104729"
+                                           value="<?= htmlspecialchars($form['electricity_bill_no']) ?>">
+                                </div>
+                                <p class="text-[11px] text-slate-400 mt-1">Ceylon Electricity Board (CEB) No.</p>
+                            </div>
+
+                            <!-- Water Bill -->
+                            <div>
+                                <label for="water_bill_no" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                    <i data-lucide="droplet" class="w-3.5 h-3.5 text-blue-500"></i>
+                                    <span>Water Bill No.</span>
+                                </label>
+                                <div class="relative">
+                                    <input type="text" id="water_bill_no" name="water_bill_no"
+                                           class="w-full px-3.5 py-2.5 border border-slate-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/15 rounded-xl text-sm font-mono text-slate-900 placeholder:text-slate-400 outline-none transition-all"
+                                           placeholder="e.g., 3045100041 or 12/45/..."
+                                           value="<?= htmlspecialchars($form['water_bill_no']) ?>">
+                                </div>
+                                <p class="text-[11px] text-slate-400 mt-1">National Water Board (NWSDB) No.</p>
+                            </div>
+                        </div>
+
+                        <div id="billClientError" class="hidden mt-2 p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                            <i data-lucide="alert-triangle" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                            <span>Please provide at least one utility bill number to proceed.</span>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 3: Set Password -->
+                    <div>
+                        <div class="flex items-center gap-2 pb-2 mb-4 border-b border-slate-200 text-xs font-bold text-blue-700 uppercase tracking-wider">
+                            <i data-lucide="lock" class="w-4 h-4"></i>
+                            <span>Set Password</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Password -->
+                            <div>
+                                <label for="password" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                    Password <span class="text-rose-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <input type="password" id="password" name="password"
+                                           class="w-full pl-3.5 pr-10 py-2.5 border border-slate-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/15 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all"
+                                           placeholder="Min. 8 characters" required autocomplete="new-password">
+                                    <button type="button" id="togglePasswordBtn" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1" aria-label="Toggle password visibility">
+                                        <i data-lucide="eye" class="w-4 h-4" id="toggleIcon"></i>
+                                    </button>
+                                </div>
+                                <!-- Strength meter -->
+                                <div class="mt-2 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                    <div id="strengthBar" class="h-full w-0 transition-all duration-300 bg-rose-500 rounded-full"></div>
+                                </div>
+                                <div id="strengthLabel" class="text-[11px] text-slate-400 mt-1 font-medium">Minimum 8 characters</div>
+                            </div>
+
+                            <!-- Confirm Password -->
+                            <div>
+                                <label for="password_confirm" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                    Confirm Password <span class="text-rose-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <input type="password" id="password_confirm" name="password_confirm"
+                                           class="w-full px-3.5 py-2.5 border border-slate-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/15 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all"
+                                           placeholder="Repeat password" required autocomplete="new-password">
+                                </div>
+                                <div id="matchNotice" class="text-[11px] text-slate-400 mt-1 font-medium"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="pt-2">
+                        <button type="submit" name="register" id="submitBtn"
+                                class="w-full py-3.5 px-6 rounded-xl font-display font-bold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25 hover:shadow-blue-600/35 transition-all flex items-center justify-center gap-2 transform hover:-translate-y-0.5 cursor-pointer">
+                            <i data-lucide="shield-check" class="w-4 h-4"></i>
+                            <span>Verify Residency & Create Account</span>
+                        </button>
+                    </div>
+
+                </form>
+
+                <!-- Footer Sign In Link -->
+                <div class="mt-6 pt-6 border-t border-slate-100 text-center">
+                    <p class="text-xs text-slate-500">
+                        Already have an active account? 
+                        <a href="login_page.php" class="text-blue-600 hover:text-blue-700 font-bold ml-1 hover:underline">
+                            Sign in here &rarr;
+                        </a>
+                    </p>
                 </div>
-                <div class="bill-note" id="pwStrengthLabel"></div>
+
             </div>
-            <div class="col-md-6">
-                <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
-                <input type="password" name="password_confirm" id="pwConfirmField" class="form-control"
-                       placeholder="Repeat password" required>
-                <div class="bill-note" id="pwMatchNote" style="display:none;"></div>
-            </div>
+
+            <!-- Official Municipal Subtext -->
+            <p class="text-center text-xs text-slate-400 mt-6 flex items-center justify-center gap-1.5">
+                <i data-lucide="shield" class="w-3.5 h-3.5 text-blue-600"></i>
+                <span>Protected by Balangoda Urban Council Municipal Registry Verification</span>
+            </p>
+
         </div>
+    </main>
 
-        <button type="submit" name="register" class="btn-register mt-2">
-            <i class="bi bi-person-plus me-2"></i>Create Account
-        </button>
-    </form>
-    <?php endif; ?>
+    <!-- Client-side Interactive Script -->
+    <script>
+    lucide.createIcons();
 
-    <div class="signin-link">
-        Already have an account? <a href="login_page.php">Sign in here →</a>
-    </div>
-</div>
+    // Password visibility toggle
+    const pwInput = document.getElementById('password');
+    const toggleBtn = document.getElementById('togglePasswordBtn');
+    const toggleIcon = document.getElementById('toggleIcon');
+    toggleBtn?.addEventListener('click', () => {
+        const isPw = pwInput.type === 'password';
+        pwInput.type = isPw ? 'text' : 'password';
+        toggleIcon.setAttribute('data-lucide', isPw ? 'eye-off' : 'eye');
+        lucide.createIcons();
+    });
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-// Phone live format hint
-const phoneEl = document.getElementById('phoneInput');
-phoneEl?.addEventListener('input', function() {
-    const v = this.value.replace(/\s/g,'');
-    const ok = /^(\+94|0)[0-9]{9}$/.test(v);
-    this.classList.toggle('is-invalid', this.value.length > 3 && !ok);
-    this.classList.toggle('is-valid',   this.value.length > 3 &&  ok);
-});
+    // Password strength meter
+    const strengthBar = document.getElementById('strengthBar');
+    const strengthLabel = document.getElementById('strengthLabel');
+    pwInput?.addEventListener('input', function() {
+        const val = this.value;
+        if (!val) {
+            strengthBar.style.width = '0%';
+            strengthLabel.textContent = 'Minimum 8 characters';
+            strengthLabel.className = 'text-[11px] text-slate-400 mt-1 font-medium';
+            return;
+        }
 
-// Bill: at least one required
-const elecBill  = document.getElementById('elecBill');
-const waterBill = document.getElementById('waterBill');
-const billErr   = document.getElementById('billError');
-function checkBills() {
-    const missing = !elecBill?.value.trim() && !waterBill?.value.trim();
-    if (billErr) billErr.style.display = missing ? '' : 'none';
-    return !missing;
-}
-elecBill?.addEventListener('input', checkBills);
-waterBill?.addEventListener('input', checkBills);
+        let score = 0;
+        if (val.length >= 8) score++;
+        if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
+        if (/[0-9]/.test(val)) score++;
+        if (/[^A-Za-z0-9]/.test(val)) score++;
 
-// Password strength
-const pwField = document.getElementById('pwField');
-const pwBar   = document.getElementById('pwBar');
-const pwLabel = document.getElementById('pwStrengthLabel');
-const levels  = [
-    { re: /.{8}/, label: 'Weak', color: '#ef4444', w: '30%' },
-    { re: /(?=.*[a-z])(?=.*[A-Z]).{8}/, label: 'Fair', color: '#f59e0b', w: '55%' },
-    { re: /(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8}/, label: 'Good', color: '#3b82f6', w: '78%' },
-    { re: /(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[\W]).{10}/, label: 'Strong', color: '#22c55e', w: '100%' },
-];
-pwField?.addEventListener('input', function() {
-    const v = this.value;
-    let lvl = -1;
-    levels.forEach((l, i) => { if (l.re.test(v)) lvl = i; });
-    if (!v) { pwBar.style.width='0'; pwLabel.textContent=''; return; }
-    const cur = levels[lvl] ?? { label:'Too short', color:'#ef4444', w:'12%' };
-    pwBar.style.width = cur.w;
-    pwBar.style.background = cur.color;
-    pwLabel.textContent = 'Strength: ' + cur.label;
-    pwLabel.style.color = cur.color;
-});
+        if (val.length < 8) {
+            strengthBar.style.width = '25%';
+            strengthBar.className = 'h-full bg-rose-500 rounded-full';
+            strengthLabel.textContent = 'Too short (min 8 chars)';
+            strengthLabel.className = 'text-[11px] text-rose-600 mt-1 font-medium';
+        } else if (score <= 2) {
+            strengthBar.style.width = '50%';
+            strengthBar.className = 'h-full bg-amber-500 rounded-full';
+            strengthLabel.textContent = 'Medium strength';
+            strengthLabel.className = 'text-[11px] text-amber-600 mt-1 font-medium';
+        } else {
+            strengthBar.style.width = '100%';
+            strengthBar.className = 'h-full bg-emerald-500 rounded-full';
+            strengthLabel.textContent = 'Strong password';
+            strengthLabel.className = 'text-[11px] text-emerald-600 mt-1 font-medium';
+        }
+    });
 
-// Password match feedback
-const pwConfirm = document.getElementById('pwConfirmField');
-const matchNote = document.getElementById('pwMatchNote');
-pwConfirm?.addEventListener('input', function() {
-    const match = this.value === pwField?.value;
-    matchNote.style.display = this.value ? '' : 'none';
-    matchNote.textContent = match ? '✓ Passwords match' : '✗ Passwords do not match';
-    matchNote.style.color = match ? '#22c55e' : '#ef4444';
-    this.classList.toggle('is-invalid', !match && this.value.length > 0);
-    this.classList.toggle('is-valid',    match && this.value.length > 0);
-});
-
-// Toggle password visibility
-document.getElementById('togglePw')?.addEventListener('click', function() {
-    const type = pwField.type === 'password' ? 'text' : 'password';
-    pwField.type = type;
-    document.getElementById('togglePwIcon').className = type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
-});
-
-// Form submit guard
-document.getElementById('registerForm')?.addEventListener('submit', function(e) {
-    if (!checkBills()) {
-        e.preventDefault();
-        elecBill?.focus();
+    // Real-time password match check
+    const confirmInput = document.getElementById('password_confirm');
+    const matchNotice = document.getElementById('matchNotice');
+    function checkMatch() {
+        if (!confirmInput.value) {
+            matchNotice.textContent = '';
+            return;
+        }
+        if (confirmInput.value === pwInput.value) {
+            matchNotice.textContent = '✓ Passwords match';
+            matchNotice.className = 'text-[11px] text-emerald-600 mt-1 font-medium';
+        } else {
+            matchNotice.textContent = '✗ Passwords do not match';
+            matchNotice.className = 'text-[11px] text-rose-600 mt-1 font-medium';
+        }
     }
-    const ph = phoneEl?.value.replace(/\s/g,'');
-    if (ph && !/^(\+94|0)[0-9]{9}$/.test(ph)) {
-        e.preventDefault();
-        phoneEl?.focus();
+    confirmInput?.addEventListener('input', checkMatch);
+    pwInput?.addEventListener('input', checkMatch);
+
+    // Bill requirement validator
+    const elecInput = document.getElementById('electricity_bill_no');
+    const waterInput = document.getElementById('water_bill_no');
+    const billError = document.getElementById('billClientError');
+
+    function validateBills() {
+        const hasElec = elecInput.value.trim().length > 0;
+        const hasWater = waterInput.value.trim().length > 0;
+        if (!hasElec && !hasWater) {
+            billError.classList.remove('hidden');
+            return false;
+        } else {
+            billError.classList.add('hidden');
+            return true;
+        }
     }
-});
-</script>
+
+    elecInput?.addEventListener('input', () => { if (elecInput.value.trim()) billError.classList.add('hidden'); });
+    waterInput?.addEventListener('input', () => { if (waterInput.value.trim()) billError.classList.add('hidden'); });
+
+    // Form submission validation guard
+    document.getElementById('registerForm')?.addEventListener('submit', function(e) {
+        if (!validateBills()) {
+            e.preventDefault();
+            elecInput.focus();
+        }
+    });
+    </script>
 </body>
 </html>
